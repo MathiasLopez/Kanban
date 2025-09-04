@@ -1,0 +1,108 @@
+/* Card */
+.card {
+  background: #fff;
+  border: 1px solid #ddd;
+  border-radius: 4px;
+  padding: 16px;
+  margin: 12px 0;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.08);
+  transition: transform 0.2s ease;
+}
+
+.card:hover {
+  transform: translateY(-2px);
+}
+
+/* Title */
+.card h3 {
+  margin: 0 0 8px 0;
+  font-size: 18px;
+  font-weight: bold;
+  color: #333;
+}
+
+/* Description */
+.card p {
+  margin: 4px 0;
+  font-size: 14px;
+  color: #555;
+}
+
+/* Checkbox completed */
+.card label {
+  display: flex;
+  align-items: center;
+  margin: 8px 0;
+  font-size: 14px;
+  color: #444;
+}
+
+.card input[type="checkbox"] {
+  margin-right: 6px;
+  cursor: pointer;
+}
+
+/* Priority text */
+.card-priority {
+  font-size: 13px;
+  font-weight: bold;
+  padding: 4px 8px;
+  border-radius: 4px;
+  display: inline-block;
+}
+
+/* Colors according to priority */
+.card-priority-normal {
+  background: #e0e0e0;
+  color: #333;
+}
+
+.card-priority-low {
+  background: #d0f0d0;
+  color: #2e7d32;
+}
+
+.card-priority-medium {
+  background: #fff3cd;
+  color: #856404;
+}
+
+.card-priority-high {
+  background: #f8d7da;
+  color: #721c24;
+}
+
+.card-priority-top {
+  background: #ffe0b2;
+  color: #e65100;
+}
+
+
+/* Card Dialog */
+dialog {
+  border: none;
+  border-radius: 8px;
+  padding: 20px;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
+  width: 400px;
+  max-width: 90%;
+}
+
+.dialog-form {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.dialog-form label {
+  display: flex;
+  flex-direction: column;
+  font-size: 14px;
+}
+
+menu {
+  display: flex;
+  justify-content: flex-end;
+  gap: 10px;
+}
+

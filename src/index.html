@@ -1,0 +1,75 @@
+<!DOCTYPE html>
+<html lang="es">
+
+<head>
+  <meta charset="UTF-8">
+  <title>Simple Kanban</title>
+  <link rel="stylesheet" href="./css/style.css">
+</head>
+
+<body>
+  <h1>Simple Kanban</h1>
+
+  <div id="auth-section">
+    <input id="username" placeholder="User" />
+    <input id="password" placeholder="Password" type="password" />
+    <button id="loginBtn">Login</button>
+    <button id="logoutBtn" style="display:none;">Logout</button>
+  </div>
+
+  <button id="addCardBtn" style="display:none;">+ New card</button>
+  <div id="kanban" class="kanban-content"></div>
+
+  <template id="card-template">
+    <div class="card">
+      <h3 class="card-title"></h3>
+      <p class="card-description"></p>
+      <label>
+        <input type="checkbox" class="card-completed" disabled />
+        Completed
+      </label>
+      <span class="card-priority"></span>
+    </div>
+  </template>
+
+  <dialog id="edit-dialog">
+    <form method="dialog" class="dialog-form">
+      <h2 id="dialog-title"></h2>
+
+      <label>
+        Title:
+        <input type="text" id="dialog-card-title" />
+      </label>
+
+      <label>
+        Description:
+        <textarea id="dialog-card-description"></textarea>
+      </label>
+
+      <label>
+        Completed:
+        <input type="checkbox" id="dialog-card-completed" />
+      </label>
+
+      <label>
+        Priority:
+        <select id="dialog-card-priority">
+          <option value="0">Normal</option>
+          <option value="1">Low</option>
+          <option value="2">Medium</option>
+          <option value="3">High</option>
+          <option value="4">Top</option>
+        </select>
+      </label>
+
+      <menu>
+        <button value="cancel">Cancel</button>
+        <button id="save-btn" value="default">Save</button>
+      </menu>
+    </form>
+  </dialog>
+
+  <script type="module" src="./js/index.js"></script>
+</body>
+
+</html>
