@@ -36,20 +36,20 @@
     <form method="dialog" class="dialog-form">
       <h2 id="dialog-title"></h2>
 
-      <label>
+      <label class="dialog-form-label">
         Title:
         <input type="text" id="dialog-card-title" />
       </label>
 
-      <label>
+      <label class="dialog-form-label">
         Description:
         <textarea id="dialog-card-description"></textarea>
       </label>
 
-      <label>
-        Completed:
-        <input type="checkbox" id="dialog-card-completed" />
-      </label>
+      <div class="display-form-checkbox-row">
+        <label for="completed">Completed:</label>
+        <input type="checkbox" id="dialog-card-completed" name="completed" />
+      </div>
 
       <label>
         Priority:
@@ -63,8 +63,9 @@
       </label>
 
       <menu>
-        <button value="cancel">Cancel</button>
-        <button id="save-btn" value="default">Save</button>
+        <button id="dialog-btn-delete" class="btn btn-delete" value="cancel">Delete</button>
+        <button id="dialog-btn-cancel" class="btn btn-cancel" value="cancel">Cancel</button>
+        <button id="dialog-btn-save" class="btn btn-save" value="default">Save</button>
       </menu>
     </form>
   </dialog>

@@ -26,8 +26,8 @@ export function addCard(card) {
 // Mock data
 const mockCards = [
 	{
-		"title": "Card 1",
-		"description": "Card 1 description",
+		"title": "Card with title very very very very very large",
+		"description": "Lorem ipsum dolor sit amet, consectetur adipiscing elit. Cras finibus porttitor porttitor. Curabitur pellentesque ligula at eros pharetra placerat. Fusce sed efficitur sapien, a congue mauris. Curabitur vestibulum dui tellus, eget placerat est laoreet a. Phasellus a elit et magna viverra fringilla eget in ipsum. Vivamus iaculis venenatis erat, vel efficitur velit. Ut blandit luctus orci ac fringilla. Fusce fermentum elit vel luctus laoreet.",
 		"priority": 0,
 		"id": "b5bcb32b-e930-42e1-ba66-99a41c98eb56",
 		"is_completed": false

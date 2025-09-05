@@ -27,7 +27,7 @@ export class Kanban {
     this.render();
   }
 
-  async addCard(card) {
+  addCard(card) {
     this.cards.push(card);
     createCard(this, card);
   }
@@ -37,6 +37,12 @@ export class Kanban {
     Object.assign(originalCard, card);
     const cardElement = document.querySelector(`[data-id="${originalCard.id}"]`);
     updateCard(cardElement, originalCard);
+  }
+
+  deleteCard(card) {
+    this.cards = this.cards.filter(i => i.id !== card.id);
+    const cardElement = document.querySelector(`[data-id="${card.id}"]`);
+    cardElement.remove();
   }
 
   render() {

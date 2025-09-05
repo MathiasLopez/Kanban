@@ -7,6 +7,8 @@
   margin: 12px 0;
   box-shadow: 0 2px 6px rgba(0, 0, 0, 0.08);
   transition: transform 0.2s ease;
+  max-width: 240px;
+  max-height: 120px;
 }
 
 .card:hover {
@@ -19,6 +21,9 @@
   font-size: 18px;
   font-weight: bold;
   color: #333;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 /* Description */
@@ -26,6 +31,11 @@
   margin: 4px 0;
   font-size: 14px;
   color: #555;
+  display: -webkit-box;
+  -webkit-line-clamp: 2; /* máximo 2 líneas */
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 /* Checkbox completed */
@@ -94,15 +104,65 @@ dialog {
   gap: 12px;
 }
 
-.dialog-form label {
+.dialog-form-label {
   display: flex;
   flex-direction: column;
   font-size: 14px;
 }
 
-menu {
-  display: flex;
-  justify-content: flex-end;
-  gap: 10px;
+.dialog-form textarea {
+  min-height: 120px;
 }
 
+.display-form-checkbox-row {
+  display: flex;
+  align-items: center;  /* centra verticalmente */
+  gap: 8px;
+}
+
+.dialog-form menu {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: 8px;
+}
+
+/* Buttons */
+/* Basic reset for buttons */
+.btn {
+  all: unset;                /* remove all default styles */
+  display: inline-block;
+  padding: 8px 16px;
+  border-radius: 4px;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  text-align: center;
+  user-select: none;
+  transition: background 0.2s ease, color 0.2s ease;
+  letter-spacing: 0.1em;
+}
+
+.btn-save {
+  background: #4caf50;
+  color: white;
+}
+.btn-save:hover {
+  background: #43a047;
+}
+
+.btn-cancel {
+  background: #e0e0e0;
+  color: #333;
+}
+.btn-cancel:hover {
+  background: #d5d5d5;
+}
+
+.btn-delete {
+  background: #f44336;
+  color: white;
+}
+.btn-delete:hover {
+  background: #e53935;
+}

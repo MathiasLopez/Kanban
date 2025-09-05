@@ -11,7 +11,7 @@ const kanban = new Kanban(
   });
 const dialog = new Dialog({
   dialog: document.querySelector("#edit-dialog"),
-  saveClick: onSaveCardClicked
+  onClose: cardDialogClosed
 })
 const loginBtn = document.getElementById("loginBtn");
 const logoutBtn = document.getElementById("logoutBtn");
@@ -62,21 +62,26 @@ logoutBtn.onclick = () => {
 };
 
 addCardBtn.onclick = async () => {
-  dialog.openDialog(newCard);
+  console.log(`addCardBtn clicked`);
+  dialog.openDialog({ ...newCard });
 };
 
 function onCardClick(args) {
-  console.log(`Click on the card: ${args.title}`)
-  dialog.openDialog(args);
+  console.log(`onCardClicked: ${JSON.stringify(args)}`);
+  dialog.openDialog({ ...args });
 }
 
-async function onSaveCardClicked(card) {
-  console.log(`Saved card button dialog clicked: ${card.title}`);
-  if (card.id) {
-    kanban.updateCard(card);
-  } else {
-    await addCard(card);
-    kanban.addCard(card);
+async function cardDialogClosed(args) {
+  console.log(`cardDialogClosed: ${JSON.stringify(args)}`);
+  if (args.action === "save") {
+    if (args.data.id) {
+      kanban.updateCard(args.data);
+    } else {
+      await addCard(args.data);
+      kanban.addCard(args.data);
+    }
+  } else if (args.action === "delete") {
+    kanban.deleteCard(args.data);
   }
 }
 
