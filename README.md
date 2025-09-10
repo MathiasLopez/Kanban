@@ -14,5 +14,3 @@ The application is **powered by a backend** already deployed at:
 
 The source code of the backend can be found here:  
 [https://github.com/MathiasLopez/todo-devops-lab](https://github.com/MathiasLopez/todo-devops-lab)
-
-test contribution
