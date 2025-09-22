@@ -1,11 +1,3 @@
-export function login(username, password) {
-	return new Promise((resolve) => {
-    setTimeout(() => {
-      resolve(self.crypto.randomUUID());
-    }, 1000);
-  });
-}
-
 export function getCard() {
 	return new Promise((resolve) => {
     setTimeout(() => {
