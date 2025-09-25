@@ -1,4 +1,4 @@
-import { getCard, addCard } from "./api.js";
+import { getTasks, addTask, updateTask, deleteTask, markTaskAsCompleted } from "./api.js";
 import { redirectToLogin, isAuthenticated } from "./auth.js";
 import { Kanban } from "./kanban.js";
 import { Dialog } from "./Dialog.js";
@@ -8,7 +8,8 @@ const kanban = new Kanban(
     {
         container: document.getElementById("kanban"),
         template: document.getElementById("card-template"),
-        cardClick: onCardClick
+        cardClick: onCardClick,
+        cardCompleted: onCardCompleted
     });
 const dialog = new Dialog({
     dialog: document.querySelector("#edit-dialog"),
@@ -18,7 +19,7 @@ const dialog = new Dialog({
 const logoutBtn = document.getElementById("logoutBtn");
 const addCardBtn = document.getElementById("addCardBtn");
 
-const newCard = {
+const newTask = {
     title: "",
     description: "",
     is_completed: false,
@@ -49,8 +50,8 @@ const newCard = {
 
 async function initializeKanban() {
     addCardBtn.style.display = "inline-block";
-    const cards = await getCard()
-    kanban.loadCards(cards);
+    const tasks = await getTasks()
+    kanban.loadCards(tasks);
 }
 
 function removeKanban() {
@@ -66,7 +67,7 @@ function showAccess() {
 
 addCardBtn.onclick = async () => {
     console.log(`addCardBtn clicked`);
-    dialog.openDialog({ ...newCard });
+    dialog.openDialog({ ...newTask });
 };
 
 function onCardClick(args) {
@@ -74,16 +75,25 @@ function onCardClick(args) {
     dialog.openDialog({ ...args });
 }
 
+async function onCardCompleted(task) {
+    console.log(`onCardCompleted: ${JSON.stringify(task)}`)
+    await markTaskAsCompleted(task);
+    kanban.updateCard(task);
+}
+
 async function cardDialogClosed(args) {
     console.log(`cardDialogClosed: ${JSON.stringify(args)}`);
     if (args.action === "save") {
         if (args.data.id) {
+            await updateTask(args.data)
             kanban.updateCard(args.data);
         } else {
-            await addCard(args.data);
+            var response = await addTask(args.data);
+            args.data.id = response.id
             kanban.addCard(args.data);
         }
     } else if (args.action === "delete") {
+        await deleteTask(args.data)
         kanban.deleteCard(args.data);
     }
 }
