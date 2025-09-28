@@ -7,7 +7,7 @@ export function redirectToLogin() {
 
 export async function isAuthenticated() {
     try {
-        const res = await fetch(`${SSO_BASE_URL}auth/check-sso-token`, {
+        const res = await fetch(`${SSO_BASE_URL}api/check-sso-token`, {
             method: 'GET',
             credentials: 'include'
         });

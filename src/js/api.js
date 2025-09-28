@@ -7,7 +7,8 @@ export async function apiFetch(endpoint, options = {}) {
 
 	const res = await fetch(`${API_URL}${endpoint}`, {
 		...options,
-		headers
+		headers,
+		credentials: "include"
 	});
 
 	if (!res.ok) {
