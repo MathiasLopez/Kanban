@@ -1,11 +1,11 @@
-const API_URL = "https://tasksapi.mathiaslopez.tech";
+import getConfig from "./config.js"
 
 export async function apiFetch(endpoint, options = {}) {
 	const headers = {
 		"Content-Type": "application/json",
 	};
 
-	const res = await fetch(`${API_URL}${endpoint}`, {
+	const res = await fetch(`${getConfig().API_URL}${endpoint}`, {
 		...options,
 		headers,
 		credentials: "include"
@@ -50,4 +50,9 @@ export function markTaskAsCompleted(task) {
 	return apiFetch(`/tasks/${task.id}/complete`, {
 		method: "PUT"
 	});
+}
+
+// Users
+export function getUsers() {
+	return apiFetch("/users/");
 }

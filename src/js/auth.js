@@ -1,13 +1,14 @@
-const SSO_BASE_URL = "https://auth.mathiaslopez.tech/"
+import getConfig from "./config.js"
+
 const REDIRECT_URI = window.location.origin;
 
 export function redirectToLogin() {
-  window.location.href = `${SSO_BASE_URL}login?redirect=${encodeURIComponent(REDIRECT_URI)}`;
+  window.location.href = `${getConfig().SSO_BASE_URL}login?redirect=${encodeURIComponent(REDIRECT_URI)}`;
 }
 
 export async function isAuthenticated() {
     try {
-        const res = await fetch(`${SSO_BASE_URL}api/check-sso-token`, {
+        const res = await fetch(`${getConfig().SSO_BASE_URL}api/check-sso-token`, {
             method: 'GET',
             credentials: 'include'
         });

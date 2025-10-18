@@ -37,6 +37,7 @@ export class Dialog {
     this.dialog.querySelector("#dialog-card-description").value = data.description;
     this.dialog.querySelector("#dialog-card-completed").checked = data.is_completed;
     this.dialog.querySelector("#dialog-card-priority").value = data.priority;
+    this.dialog.querySelector("#dialog-card-assigned").value = data.assigned ?? "";
 
     this.dialog.showModal();
   }
@@ -53,6 +54,8 @@ export class Dialog {
     this.currentData.description = this.dialog.querySelector("#dialog-card-description").value;
     this.currentData.is_completed = this.dialog.querySelector("#dialog-card-completed").checked;
     this.currentData.priority = parseInt(this.dialog.querySelector("#dialog-card-priority").value);
+    let assigned = this.dialog.querySelector("#dialog-card-assigned").value;
+    this.currentData.assigned = assigned === "" ? null : assigned;
     return this.currentData;
   }
 }

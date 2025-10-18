@@ -1,4 +1,4 @@
-import { getTasks, addTask, updateTask, deleteTask, markTaskAsCompleted } from "./api.js";
+import { getTasks, addTask, updateTask, deleteTask, markTaskAsCompleted, getUsers } from "./api.js";
 import { redirectToLogin, isAuthenticated } from "./auth.js";
 import { Kanban } from "./kanban.js";
 import { Dialog } from "./Dialog.js";
@@ -18,12 +18,14 @@ const dialog = new Dialog({
 
 const logoutBtn = document.getElementById("logoutBtn");
 const addCardBtn = document.getElementById("addCardBtn");
+const assignedSelect = document.getElementById("dialog-card-assigned");
 
 const newTask = {
     title: "",
     description: "",
     is_completed: false,
     priority: 0,
+    assigned: null
 };
 
 (async () => {
@@ -39,12 +41,13 @@ const newTask = {
         if (await isAuthenticated()) {
             loginBtn.style.display = "none";
             logoutBtn.style.display = "inline-block";
+            await loadUsers();
             await initializeKanban();
         } else {
             showAccess();
         }
     } catch (error) {
-
+        console.error(error);
     }
 })();
 
@@ -96,4 +99,19 @@ async function cardDialogClosed(args) {
         await deleteTask(args.data)
         kanban.deleteCard(args.data);
     }
+}
+
+async function loadUsers() {
+    const users = await getUsers();
+
+    const emptyOption = document.createElement("option");
+    emptyOption.value = "";
+    emptyOption.textContent = "— Sin asignar —";
+    assignedSelect.appendChild(emptyOption);
+    users.forEach(user => {
+        const option = document.createElement("option");
+        option.value = user.id;
+        option.textContent = user.username;
+        assignedSelect.appendChild(option);
+    });
 }
