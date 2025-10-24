@@ -27,8 +27,8 @@ export function getTasks(boardId) {
 	return apiFetch(`/boards/${boardId}/tasks`);
 }
 
-export function addTask(task) {
-	return apiFetch("/tasks/", {
+export function addTask(task, boardId) {
+	return apiFetch(`/boards/${boardId}/tasks`, {
 		method: "POST",
 		body: JSON.stringify(task)
 	});

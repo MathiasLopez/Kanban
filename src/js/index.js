@@ -107,7 +107,7 @@ async function cardDialogClosed(args) {
             await updateTask(args.data)
             kanban.updateCard(args.data);
         } else {
-            var response = await addTask(args.data);
+            var response = await addTask(args.data, boardSelect.value);
             args.data.id = response.id
             kanban.addCard(args.data);
         }
