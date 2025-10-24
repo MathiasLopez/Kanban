@@ -1,4 +1,4 @@
-import { getTasks, addTask, updateTask, deleteTask, markTaskAsCompleted, getUsers } from "./api.js";
+import { getBoards, getTasks, addTask, updateTask, deleteTask, markTaskAsCompleted, getUsers } from "./api.js";
 import { redirectToLogin, isAuthenticated } from "./auth.js";
 import { Kanban } from "./kanban.js";
 import { Dialog } from "./Dialog.js";
@@ -17,8 +17,10 @@ const dialog = new Dialog({
 })
 
 const logoutBtn = document.getElementById("logoutBtn");
+const addBoardBtn = document.getElementById("addBoardBtn");
 const addCardBtn = document.getElementById("addCardBtn");
 const assignedSelect = document.getElementById("dialog-card-assigned");
+const boardSelect = document.getElementById("board-select");
 
 const newTask = {
     title: "",
@@ -38,6 +40,11 @@ const newTask = {
             showAccess();
         });
 
+        boardSelect.addEventListener("change", async e => {
+            console.log("Board selected:", e.target.value);
+            await loadTasks()
+        });
+
         if (await isAuthenticated()) {
             loginBtn.style.display = "none";
             logoutBtn.style.display = "inline-block";
@@ -52,13 +59,17 @@ const newTask = {
 })();
 
 async function initializeKanban() {
+    addBoardBtn.style.display = "inline-block";
     addCardBtn.style.display = "inline-block";
-    const tasks = await getTasks()
-    kanban.loadCards(tasks);
+    boardSelect.style.display = "inline-block"
+    await loadBoards();
+    await loadTasks();
 }
 
 function removeKanban() {
+    addBoardBtn.style.display = "none";
     addCardBtn.style.display = "none";
+    boardSelect.style.display = "none"
     kanban.destroy()
 }
 
@@ -67,6 +78,11 @@ function showAccess() {
     loginBtn.style.display = "inline-block";
     removeKanban();
 }
+
+addBoardBtn.onclick = async () => {
+    console.log(`addBoardBtn clicked`);
+    dialog.openDialog({ ...newTask });
+};
 
 addCardBtn.onclick = async () => {
     console.log(`addCardBtn clicked`);
@@ -114,4 +130,24 @@ async function loadUsers() {
         option.textContent = user.username;
         assignedSelect.appendChild(option);
     });
+}
+
+async function loadBoards() {
+    const boards = await getBoards();
+    boards.forEach(board => {
+        const option = document.createElement("option");
+        option.value = board.id;
+        option.textContent = board.title;
+        boardSelect.appendChild(option);
+    });
+}
+
+async function loadTasks() {
+    const boardSelected = boardSelect.value;
+    if (boardSelected) {
+        var tasks = await getTasks(boardSelected);
+        kanban.loadCards(tasks);
+    } else {
+        return []
+    }
 }

@@ -22,8 +22,9 @@ export async function apiFetch(endpoint, options = {}) {
 	return res.json();
 }
 
-export function getTasks() {
-	return apiFetch("/tasks/");
+// Tasks
+export function getTasks(boardId) {
+	return apiFetch(`/boards/${boardId}/tasks`);
 }
 
 export function addTask(task) {
@@ -50,6 +51,11 @@ export function markTaskAsCompleted(task) {
 	return apiFetch(`/tasks/${task.id}/complete`, {
 		method: "PUT"
 	});
+}
+
+//Boards
+export function getBoards() {
+	return apiFetch("/boards/");
 }
 
 // Users
