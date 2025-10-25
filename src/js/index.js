@@ -22,6 +22,8 @@ const dialog = new Dialog({
     }
 })
 
+const BOARD_CACHE_KEY = "selectedBoardId";
+
 const logoutBtn = document.getElementById("logoutBtn");
 const addBoardBtn = document.getElementById("addBoardBtn");
 const addCardBtn = document.getElementById("addCardBtn");
@@ -53,7 +55,7 @@ const newBoard = {
         });
 
         boardSelect.addEventListener("change", async e => {
-            console.log("Board selected:", e.target.value);
+            localStorage.setItem(BOARD_CACHE_KEY, e.target.value);
             await loadTasks()
         });
 
@@ -147,6 +149,10 @@ async function boardDialogClosed(args) {
             } else {
                 var response = await addBoard(args.data);
                 addBoardToSelect(response);
+                if (confirm("Would you like to go to the newly created board?")) {
+                    boardSelect.value = response.id;
+                    kanban.destroy();
+                }
             }
         } else if (args.action === "delete") {
             if (confirm("Are you sure you want to delete the board? All tasks associated with it will be deleted.")) {
@@ -178,9 +184,22 @@ async function loadUsers() {
 
 async function loadBoards() {
     const boards = await getBoards();
+    boardSelect.innerHTML = "";
     boards.forEach(board => {
         addBoardToSelect(board);
     });
+
+    const cachedId = localStorage.getItem(BOARD_CACHE_KEY);
+    if (cachedId) {
+        const option = boardSelect.querySelector(`option[value="${cachedId}"]`);
+        if (option) {
+            boardSelect.value = cachedId;
+        } else {
+            localStorage.removeItem(BOARD_CACHE_KEY);
+        }
+    } else if (boardSelect.options.length > 0) {
+        boardSelect.value = boardSelect.options[0].value;
+    }
 }
 
 function addBoardToSelect(board) {
