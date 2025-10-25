@@ -1,4 +1,4 @@
-import { getBoards, getTasks, addTask, updateTask, deleteTask, markTaskAsCompleted, getUsers } from "./api.js";
+import { getBoards, addBoard, getTasks, addTask, updateTask, deleteTask, markTaskAsCompleted, getUsers } from "./api.js";
 import { redirectToLogin, isAuthenticated } from "./auth.js";
 import { Kanban } from "./kanban.js";
 import { Dialog } from "./Dialog.js";
@@ -13,7 +13,13 @@ const kanban = new Kanban(
     });
 const dialog = new Dialog({
     dialog: document.querySelector("#edit-dialog"),
-    onClose: cardDialogClosed
+    onClose: async (args) => {
+        if (args.isBoard) {
+            await boardDialogClosed(args);
+        } else {
+            await cardDialogClosed(args);
+        }
+    }
 })
 
 const logoutBtn = document.getElementById("logoutBtn");
@@ -28,6 +34,11 @@ const newTask = {
     is_completed: false,
     priority: 0,
     assigned: null
+};
+
+const newBoard = {
+    title: "",
+    description: ""
 };
 
 (async () => {
@@ -81,7 +92,7 @@ function showAccess() {
 
 addBoardBtn.onclick = async () => {
     console.log(`addBoardBtn clicked`);
-    dialog.openDialog({ ...newTask });
+    dialog.openDialog({ data: { ...newBoard }, isBoard: true });
 };
 
 addCardBtn.onclick = async () => {
@@ -117,6 +128,25 @@ async function cardDialogClosed(args) {
     }
 }
 
+async function boardDialogClosed(args) {
+    try {
+        if (args.action === "save") {
+            if (args.data.id) {
+                //await updateTask(args.data)
+                console.log(`boardDialogClosed | update | args: ${JSON.stringify(args)}`);
+            } else {
+                var response = await addBoard(args.data);
+                addBoardToSelect(response);
+            }
+        } else if (args.action === "delete") {
+            console.log(`boardDialogClosed | delete | args: ${JSON.stringify(args)}`);
+            //await deleteTask(args.data)
+        }
+    } catch (error) {
+        console.error(error);
+    }
+}
+
 async function loadUsers() {
     const users = await getUsers();
 
@@ -135,11 +165,15 @@ async function loadUsers() {
 async function loadBoards() {
     const boards = await getBoards();
     boards.forEach(board => {
-        const option = document.createElement("option");
-        option.value = board.id;
-        option.textContent = board.title;
-        boardSelect.appendChild(option);
+        addBoardToSelect(board);
     });
+}
+
+function addBoardToSelect(board) {
+    const option = document.createElement("option");
+    option.value = board.id;
+    option.textContent = board.title;
+    boardSelect.appendChild(option);
 }
 
 async function loadTasks() {

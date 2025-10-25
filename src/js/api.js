@@ -58,6 +58,13 @@ export function getBoards() {
 	return apiFetch("/boards/");
 }
 
+export function addBoard(board) {
+	return apiFetch('/boards/', {
+		method: "POST",
+		body: JSON.stringify(board)
+	});
+}
+
 // Users
 export function getUsers() {
 	return apiFetch("/users/");
