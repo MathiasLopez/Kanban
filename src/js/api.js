@@ -58,10 +58,27 @@ export function getBoards() {
 	return apiFetch("/boards/");
 }
 
+export function getBoard(boardId) {
+	return apiFetch(`/boards/${boardId}`);
+}
+
 export function addBoard(board) {
 	return apiFetch('/boards/', {
 		method: "POST",
 		body: JSON.stringify(board)
+	});
+}
+
+export function updateBoard(board) {
+	return apiFetch(`/boards/${board.id}`, {
+		method: "PUT",
+		body: JSON.stringify(board)
+	});
+}
+
+export function deleteBoard(board) {
+	return apiFetch(`/boards/${board.id}`, {
+		method: "DELETE"
 	});
 }
 

@@ -1,4 +1,4 @@
-import { getBoards, addBoard, getTasks, addTask, updateTask, deleteTask, markTaskAsCompleted, getUsers } from "./api.js";
+import { getBoards, getBoard, addBoard, updateBoard, deleteBoard, getTasks, addTask, updateTask, deleteTask, markTaskAsCompleted, getUsers } from "./api.js";
 import { redirectToLogin, isAuthenticated } from "./auth.js";
 import { Kanban } from "./kanban.js";
 import { Dialog } from "./Dialog.js";
@@ -27,6 +27,7 @@ const addBoardBtn = document.getElementById("addBoardBtn");
 const addCardBtn = document.getElementById("addCardBtn");
 const assignedSelect = document.getElementById("dialog-card-assigned");
 const boardSelect = document.getElementById("board-select");
+const boardEditBtn = document.getElementById("board-menu-btn");
 
 const newTask = {
     title: "",
@@ -56,6 +57,12 @@ const newBoard = {
             await loadTasks()
         });
 
+        boardEditBtn.addEventListener("click", async () => {
+            console.log(`addBoardBtn clicked`);
+            const board = await getBoard(boardSelect.value);
+            dialog.openDialog({ data: { ...board }, isBoard: true });
+        });
+
         if (await isAuthenticated()) {
             loginBtn.style.display = "none";
             logoutBtn.style.display = "inline-block";
@@ -72,7 +79,8 @@ const newBoard = {
 async function initializeKanban() {
     addBoardBtn.style.display = "inline-block";
     addCardBtn.style.display = "inline-block";
-    boardSelect.style.display = "inline-block"
+    boardSelect.style.display = "inline-block";
+    boardEditBtn.style.display = "inline-block";
     await loadBoards();
     await loadTasks();
 }
@@ -81,6 +89,7 @@ function removeKanban() {
     addBoardBtn.style.display = "none";
     addCardBtn.style.display = "none";
     boardSelect.style.display = "none"
+    boardEditBtn.style.display = "none";
     kanban.destroy()
 }
 
@@ -97,12 +106,12 @@ addBoardBtn.onclick = async () => {
 
 addCardBtn.onclick = async () => {
     console.log(`addCardBtn clicked`);
-    dialog.openDialog({ ...newTask });
+    dialog.openDialog({ data: { ...newTask } });
 };
 
 function onCardClick(args) {
     console.log(`onCardClicked: ${JSON.stringify(args)}`);
-    dialog.openDialog({ ...args });
+    dialog.openDialog({ data: { ...args } });
 }
 
 async function onCardCompleted(task) {
@@ -132,15 +141,20 @@ async function boardDialogClosed(args) {
     try {
         if (args.action === "save") {
             if (args.data.id) {
-                //await updateTask(args.data)
-                console.log(`boardDialogClosed | update | args: ${JSON.stringify(args)}`);
+                await updateBoard(args.data);
+                const option = boardSelect.querySelector(`option[value="${args.data.id}"]`);
+                option.textContent = args.data.title;
             } else {
                 var response = await addBoard(args.data);
                 addBoardToSelect(response);
             }
         } else if (args.action === "delete") {
-            console.log(`boardDialogClosed | delete | args: ${JSON.stringify(args)}`);
-            //await deleteTask(args.data)
+            if (confirm("Are you sure you want to delete the board? All tasks associated with it will be deleted.")) {
+                await deleteBoard(args.data)
+                const option = boardSelect.querySelector(`option[value="${args.data.id}"]`);
+                option.remove();
+                await loadTasks();
+            }
         }
     } catch (error) {
         console.error(error);
