@@ -2,6 +2,8 @@ import { getBoards, getBoard, addBoard, updateBoard, deleteBoard, getTasks, addT
 import { redirectToLogin, isAuthenticated } from "./auth.js";
 import { Kanban } from "./kanban.js";
 import { Dialog } from "./Dialog.js";
+import logger from "./logger.js";
+import getConfig from "./config.js"
 
 const loginBtn = document.getElementById("loginBtn");
 const kanban = new Kanban(
@@ -46,6 +48,8 @@ const newBoard = {
 
 (async () => {
     try {
+        initializeLogger();
+
         loginBtn.addEventListener("click", () => {
             redirectToLogin();
         });
@@ -60,7 +64,7 @@ const newBoard = {
         });
 
         boardEditBtn.addEventListener("click", async () => {
-            console.log(`addBoardBtn clicked`);
+            logger.debug("addBoardBtn clicked", boardSelect.value);
             const board = await getBoard(boardSelect.value);
             dialog.openDialog({ data: { ...board }, isBoard: true });
         });
@@ -74,9 +78,23 @@ const newBoard = {
             showAccess();
         }
     } catch (error) {
-        console.error(error);
+        logger.error(error.message, error)
     }
 })();
+
+function initializeLogger() {
+    try {
+        logger.setLevels({
+            debug: getConfig().ENV == 'development',
+            info: true,
+            warn: true,
+            error: true
+        });
+
+    } catch (error) {
+        console.error(error);
+    }
+}
 
 async function initializeKanban() {
     addBoardBtn.style.display = "inline-block";
@@ -102,28 +120,28 @@ function showAccess() {
 }
 
 addBoardBtn.onclick = async () => {
-    console.log(`addBoardBtn clicked`);
+    logger.debug("addBoardBtn clicked");
     dialog.openDialog({ data: { ...newBoard }, isBoard: true });
 };
 
 addCardBtn.onclick = async () => {
-    console.log(`addCardBtn clicked`);
+    logger.debug("addCardBtn clicked");
     dialog.openDialog({ data: { ...newTask } });
 };
 
 function onCardClick(args) {
-    console.log(`onCardClicked: ${JSON.stringify(args)}`);
+    logger.debug("onCardClicked", args);
     dialog.openDialog({ data: { ...args } });
 }
 
 async function onCardCompleted(task) {
-    console.log(`onCardCompleted: ${JSON.stringify(task)}`)
+    logger.debug('onCardCompleted', task);
     await markTaskAsCompleted(task);
     kanban.updateCard(task);
 }
 
 async function cardDialogClosed(args) {
-    console.log(`cardDialogClosed: ${JSON.stringify(args)}`);
+    logger.debug("cardDialogClosed", args);
     if (args.action === "save") {
         if (args.data.id) {
             await updateTask(args.data)
@@ -163,7 +181,7 @@ async function boardDialogClosed(args) {
             }
         }
     } catch (error) {
-        console.error(error);
+        logger.error(error.message, error);
     }
 }
 
