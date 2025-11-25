@@ -4,6 +4,7 @@ import { Kanban } from "./kanban.js";
 import { Dialog } from "./Dialog.js";
 import logger from "./logger.js";
 import getConfig from "./config.js"
+import { showLoader, hideLoader } from "./controls/loader.js";
 
 const loginBtn = document.getElementById("loginBtn");
 const kanban = new Kanban(
@@ -47,8 +48,11 @@ const newBoard = {
 };
 
 (async () => {
+    let loaderId;
     try {
         initializeLogger();
+
+        loaderId = showLoader();
 
         loginBtn.addEventListener("click", () => {
             redirectToLogin();
@@ -79,6 +83,8 @@ const newBoard = {
         }
     } catch (error) {
         logger.error(error.message, error)
+    } finally {
+        hideLoader(loaderId);
     }
 })();
 
