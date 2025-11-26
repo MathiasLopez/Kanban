@@ -11,6 +11,7 @@ const kanban = new Kanban(
     {
         container: document.getElementById("kanban"),
         template: document.getElementById("card-template"),
+        groupBy: 'priority',
         cardClick: onCardClick,
         cardCompleted: onCardCompleted
     });

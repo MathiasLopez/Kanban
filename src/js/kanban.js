@@ -15,12 +15,15 @@ const PRIORITY_CLASSES = {
 };
 
 export class Kanban {
-    constructor({ container, template, cardClick, cardCompleted }) {
+    constructor({ container, template, cardClick, cardCompleted, groupBy }) {
         this.container = container;
         this.template = template;
         this.cards = [];
         this.onCardClick = cardClick || null;
-        this.onCardCompleted = cardCompleted || null
+        this.onCardCompleted = cardCompleted || null;
+        this.groupBy = groupBy || null;
+
+        this.columns = {};
     }
 
     loadCards(cards) {
@@ -30,14 +33,14 @@ export class Kanban {
 
     addCard(card) {
         this.cards.push(card);
-        createCard(this, card);
+        this.#addItemToColumn(card);
     }
 
-    updateCard(card) {
-        let originalCard = this.cards.find(i => i.id == card.id);
-        Object.assign(originalCard, card);
-        const cardElement = document.querySelector(`[data-id="${originalCard.id}"]`);
-        updateCard(cardElement, originalCard);
+    updateCard(item) {
+        let originalItem = this.cards.find(i => i.id == item.id);
+        Object.assign(originalItem, item);
+        const cardElement = document.querySelector(`[data-id="${originalItem.id}"]`);
+        this.#fillCard(cardElement, originalItem);
     }
 
     deleteCard(card) {
@@ -47,57 +50,106 @@ export class Kanban {
     }
 
     render() {
-        this.destroy()
+        this.destroy();
+        this.#generateColumns(this.cards);
 
         this.cards.forEach(card => {
-            createCard(this, card);
+            this.#addItemToColumn(card);
         });
     }
 
     destroy() {
+        this.columns = {};
         this.container.innerHTML = "";
     }
-}
 
-function createCard(kanban, card) {
-    const fragment = kanban.template.content.cloneNode(true);
+    #generateColumns(cards) {
+        if (!this.groupBy) return;
 
-    const element = fragment.querySelector(".card")
-    element.setAttribute("data-id", card.id);
-    updateCard(element, card);
+        const values = [...new Set(cards.map(c => c[this.groupBy]))];
 
-    if (kanban.onCardClick) {
-        fragment.querySelector(".card").addEventListener("click", (e) => {
-            if (e.target.type === "checkbox") {
-                return;
+        values.forEach(value => {
+            const col = document.createElement("div");
+            col.classList.add("kanban-column");
+            col.dataset.groupValue = value;
+
+            const header = document.createElement("h3");
+            header.textContent = PRIORITY_LABELS[value];
+
+            col.appendChild(header);
+
+            const items = document.createElement("div");
+            items.classList.add("kanban-column-items");
+            col.appendChild(items);
+
+            this.columns[value] = items;
+            this.container.appendChild(col);
+        });
+    }
+
+    #addItemToColumn(item) {
+        const col = this.columns[item[this.groupBy]];
+
+        if (!col) return;
+
+        const cardDiv = this.#createCardElement(item);
+        col.appendChild(cardDiv);
+    }
+
+    #fillCard(element, item) {
+        element.querySelector(".card-title").textContent = item.title;
+        element.querySelector(".card-description").textContent = item.description;
+        element.querySelector(".card-completed").disabled = item.is_completed;
+        element.querySelector(".card-completed").checked = item.is_completed;
+
+        const priorityEl = element.querySelector(".card-priority");
+        const allPriorityClasses = Object.values(PRIORITY_CLASSES);
+        priorityEl.classList.remove(...allPriorityClasses);
+        priorityEl.textContent = `Priority: ${PRIORITY_LABELS[item.priority] ?? "N/A"}`;
+        priorityEl.classList.add(PRIORITY_CLASSES[item.priority]);
+
+        const currentGroup = element.dataset.groupValue;
+        const newGroup = String(item[this.groupBy]);
+
+        if (currentGroup !== newGroup) {
+            element.parentElement?.removeChild(element);
+
+            const targetColumn = this.columns[newGroup];
+            if (targetColumn) {
+                targetColumn.appendChild(element);
             }
-            kanban.onCardClick(card)
-        });
+
+            element.dataset.groupValue = newGroup;
+        }
     }
 
-    if (kanban.onCardCompleted) {
-        fragment.querySelector("#card-completed").addEventListener("change", (e) => {
-            e.stopPropagation();
-            card.is_completed = true;
-            setTimeout(() => {
-                e.target.disabled = true;
-            }, 0);
-            kanban.onCardCompleted(card);
-        });
+    #createCardElement(item) {
+        const fragment = this.template.content.cloneNode(true);
+
+        const element = fragment.querySelector(".card")
+        element.setAttribute("data-id", item.id);
+        this.#fillCard(element, item);
+
+        if (this.onCardClick) {
+            element.addEventListener("click", (e) => {
+                if (e.target.type === "checkbox") {
+                    return;
+                }
+                this.onCardClick(item)
+            });
+        }
+
+        if (this.onCardCompleted) {
+            element.querySelector("#card-completed").addEventListener("change", (e) => {
+                e.stopPropagation();
+                item.is_completed = true;
+                setTimeout(() => {
+                    e.target.disabled = true;
+                }, 0);
+                this.onCardCompleted(item);
+            });
+        }
+
+        return fragment
     }
-
-    kanban.container.appendChild(fragment);
-}
-
-function updateCard(element, card) {
-    element.querySelector(".card-title").textContent = card.title;
-    element.querySelector(".card-description").textContent = card.description;
-    element.querySelector(".card-completed").disabled = card.is_completed;
-    element.querySelector(".card-completed").checked = card.is_completed;
-
-    const priorityEl = element.querySelector(".card-priority");
-    const allPriorityClasses = Object.values(PRIORITY_CLASSES);
-    priorityEl.classList.remove(...allPriorityClasses);
-    priorityEl.textContent = `Priority: ${PRIORITY_LABELS[card.priority] ?? "N/A"}`;
-    priorityEl.classList.add(PRIORITY_CLASSES[card.priority]);
 }
