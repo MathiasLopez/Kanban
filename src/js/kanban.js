@@ -15,13 +15,14 @@ const PRIORITY_CLASSES = {
 };
 
 export class Kanban {
-    constructor({ container, template, cardClick, cardCompleted, groupBy }) {
+    constructor({ container, template, cardClick, cardCompleted, groupBy, onCardMoved }) {
         this.container = container;
         this.template = template;
         this.cards = [];
         this.onCardClick = cardClick || null;
         this.onCardCompleted = cardCompleted || null;
         this.groupBy = groupBy || null;
+        this.onCardMoved = onCardMoved || null;
 
         this.columns = {};
     }
@@ -75,7 +76,6 @@ export class Kanban {
 
             const header = document.createElement("h3");
             header.textContent = PRIORITY_LABELS[value];
-
             col.appendChild(header);
 
             const items = document.createElement("div");
@@ -84,6 +84,33 @@ export class Kanban {
 
             this.columns[value] = items;
             this.container.appendChild(col);
+
+            col.addEventListener("dragover", (e) => {
+                e.preventDefault();
+                e.dataTransfer.dropEffect = "move";
+            });
+
+            col.addEventListener("drop", (e) => {
+                e.preventDefault();
+
+                const itemId = e.dataTransfer.getData("text/plain");
+                const cardEl = this.container.querySelector(`[data-id="${itemId}"]`);
+
+                const fromColumn = cardEl.dataset.groupValue;
+                const toColumn = col.dataset.groupValue;
+
+                col.querySelector(".kanban-column-items").appendChild(cardEl);
+
+                cardEl.dataset.groupValue = toColumn;
+
+                if (this.onCardMoved) {
+                    this.onCardMoved({
+                        item: this.cards.find(i => i.id == itemId),
+                        fromColumn,
+                        toColumn
+                    });
+                }
+            });
         });
     }
 
@@ -149,6 +176,12 @@ export class Kanban {
                 this.onCardCompleted(item);
             });
         }
+
+        element.setAttribute("draggable", "true");
+        element.addEventListener("dragstart", (e) => {
+            e.dataTransfer.setData("text/plain", item.id);
+            e.dataTransfer.effectAllowed = "move";
+        });
 
         return fragment
     }

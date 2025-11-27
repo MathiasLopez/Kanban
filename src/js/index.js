@@ -13,7 +13,8 @@ const kanban = new Kanban(
         template: document.getElementById("card-template"),
         groupBy: 'priority',
         cardClick: onCardClick,
-        cardCompleted: onCardCompleted
+        cardCompleted: onCardCompleted,
+        onCardMoved: handleCardMoved
     });
 const dialog = new Dialog({
     dialog: document.querySelector("#edit-dialog"),
@@ -145,6 +146,22 @@ async function onCardCompleted(task) {
     logger.debug('onCardCompleted', task);
     await markTaskAsCompleted(task);
     kanban.updateCard(task);
+}
+
+async function handleCardMoved(args) {
+    try {
+        logger.debug("handleCardMoved", args);
+        //TODO: disable card while it is updating
+        args.item.priority = parseInt(args.toColumn);
+        kanban.updateCard(args.item);
+        await updateTask({ id: args.item.id, priority: args.item.priority });
+    } catch (error) {
+        logger.error(error.message, error);
+        args.item.priority = parseInt(args.fromColumn);
+        kanban.updateCard(args.item);
+    } finally {
+        //TODO: enable card
+    }
 }
 
 async function cardDialogClosed(args) {
