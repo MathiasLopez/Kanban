@@ -1,9 +1,9 @@
 const PRIORITY_LABELS = {
     0: "Normal",
-    1: "Baja", //"Low",
-    2: "Media", //"Medium",
-    3: "Alta", //"High",
-    4: "Muy alta", //"Top"
+    1: "Low",
+    2: "Medium",
+    3: "High",
+    4: "Top",
 };
 
 const PRIORITY_CLASSES = {
@@ -15,7 +15,7 @@ const PRIORITY_CLASSES = {
 };
 
 export class Kanban {
-    constructor({ container, template, cardClick, cardCompleted, groupBy, onCardMoved }) {
+    constructor({ container, template, cardClick, cardCompleted, groupBy, columns, onCardMoved }) {
         this.container = container;
         this.template = template;
         this.cards = [];
@@ -23,8 +23,9 @@ export class Kanban {
         this.onCardCompleted = cardCompleted || null;
         this.groupBy = groupBy || null;
         this.onCardMoved = onCardMoved || null;
+        this.columns = columns || null;
 
-        this.columns = {};
+        this.cardContainers = {};
     }
 
     loadCards(cards) {
@@ -40,19 +41,19 @@ export class Kanban {
     updateCard(item) {
         let originalItem = this.cards.find(i => i.id == item.id);
         Object.assign(originalItem, item);
-        const cardElement = document.querySelector(`[data-id="${originalItem.id}"]`);
+        const cardElement = document.querySelector(`[item-id="${originalItem.id}"]`);
         this.#fillCard(cardElement, originalItem);
     }
 
     deleteCard(card) {
         this.cards = this.cards.filter(i => i.id !== card.id);
-        const cardElement = document.querySelector(`[data-id="${card.id}"]`);
+        const cardElement = document.querySelector(`[item-id="${card.id}"]`);
         cardElement.remove();
     }
 
     render() {
         this.destroy();
-        this.#generateColumns(this.cards);
+        this.#generateColumns();
 
         this.cards.forEach(card => {
             this.#addItemToColumn(card);
@@ -60,46 +61,44 @@ export class Kanban {
     }
 
     destroy() {
-        this.columns = {};
+        this.cardContainers = {};
         this.container.innerHTML = "";
     }
 
-    #generateColumns(cards) {
+    #generateColumns() {
         if (!this.groupBy) return;
 
-        const values = [...new Set(cards.map(c => c[this.groupBy]))];
-
-        values.forEach(value => {
-            const col = document.createElement("div");
-            col.classList.add("kanban-column");
-            col.dataset.groupValue = value;
+        this.columns.forEach(column => {
+            const columnEl = document.createElement("div");
+            columnEl.classList.add("kanban-column");
+            columnEl.dataset.groupValue = column.key;
 
             const header = document.createElement("h3");
-            header.textContent = PRIORITY_LABELS[value];
-            col.appendChild(header);
+            header.textContent = column.title;
+            columnEl.appendChild(header);
 
-            const items = document.createElement("div");
-            items.classList.add("kanban-column-items");
-            col.appendChild(items);
+            const cardContainer = document.createElement("div");
+            cardContainer.classList.add("kanban-column-card-container");
+            columnEl.appendChild(cardContainer);
 
-            this.columns[value] = items;
-            this.container.appendChild(col);
+            this.cardContainers[column.key] = cardContainer;
+            this.container.appendChild(columnEl);
 
-            col.addEventListener("dragover", (e) => {
+            columnEl.addEventListener("dragover", (e) => {
                 e.preventDefault();
                 e.dataTransfer.dropEffect = "move";
             });
 
-            col.addEventListener("drop", (e) => {
+            columnEl.addEventListener("drop", (e) => {
                 e.preventDefault();
 
                 const itemId = e.dataTransfer.getData("text/plain");
-                const cardEl = this.container.querySelector(`[data-id="${itemId}"]`);
+                const cardEl = this.container.querySelector(`[item-id="${itemId}"]`);
 
                 const fromColumn = cardEl.dataset.groupValue;
-                const toColumn = col.dataset.groupValue;
+                const toColumn = columnEl.dataset.groupValue;
 
-                col.querySelector(".kanban-column-items").appendChild(cardEl);
+                columnEl.querySelector(".kanban-column-card-container").appendChild(cardEl);
 
                 cardEl.dataset.groupValue = toColumn;
 
@@ -115,12 +114,12 @@ export class Kanban {
     }
 
     #addItemToColumn(item) {
-        const col = this.columns[item[this.groupBy]];
+        const columnEl = this.cardContainers[item[this.groupBy]];
 
-        if (!col) return;
+        if (!columnEl) return;
 
         const cardDiv = this.#createCardElement(item);
-        col.appendChild(cardDiv);
+        columnEl.appendChild(cardDiv);
     }
 
     #fillCard(element, item) {
@@ -141,7 +140,7 @@ export class Kanban {
         if (currentGroup !== newGroup) {
             element.parentElement?.removeChild(element);
 
-            const targetColumn = this.columns[newGroup];
+            const targetColumn = this.cardContainers[newGroup];
             if (targetColumn) {
                 targetColumn.appendChild(element);
             }
@@ -154,7 +153,7 @@ export class Kanban {
         const fragment = this.template.content.cloneNode(true);
 
         const element = fragment.querySelector(".card")
-        element.setAttribute("data-id", item.id);
+        element.setAttribute("item-id", item.id);
         this.#fillCard(element, item);
 
         if (this.onCardClick) {

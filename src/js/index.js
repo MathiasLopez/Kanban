@@ -12,6 +12,13 @@ const kanban = new Kanban(
         container: document.getElementById("kanban"),
         template: document.getElementById("card-template"),
         groupBy: 'priority',
+        columns: [
+            { key: 0, title: "Normal" },
+            { key: 1, title: "Low" },
+            { key: 2, title: "Medium" },
+            { key: 3, title: "High" },
+            { key: 4, title: "Top" }
+        ],
         cardClick: onCardClick,
         cardCompleted: onCardCompleted,
         onCardMoved: handleCardMoved

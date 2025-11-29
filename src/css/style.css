@@ -18,7 +18,7 @@
     padding: 8px;
 }
 
-.kanban-column-items {
+.kanban-column-card-container {
     display: flex;
     flex-direction: column;
     gap: 4px;
