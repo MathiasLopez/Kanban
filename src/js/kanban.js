@@ -6,16 +6,12 @@ const PRIORITY_LABELS = {
     4: "Top",
 };
 
-const PRIORITY_CLASSES = {
-    0: "card-priority-normal",
-    1: "card-priority-low",
-    2: "card-priority-medium",
-    3: "card-priority-high",
-    4: "card-priority-top"
-};
-
+/**
+ * @param priorities List of priorities. Example [{ id = 0, title = "High", class= "" }]
+ * @param tags List of tags. Example [{ id = 0, title = "version 1.0", class= "" }]
+ */
 export class Kanban {
-    constructor({ container, template, cardClick, cardCompleted, groupBy, columns, onCardMoved }) {
+    constructor({ container, template, cardClick, cardCompleted, groupBy, columns, onCardMoved, priorites, tags }) {
         this.container = container;
         this.template = template;
         this.cards = [];
@@ -24,6 +20,8 @@ export class Kanban {
         this.groupBy = groupBy || null;
         this.onCardMoved = onCardMoved || null;
         this.columns = columns || null;
+        this.priorites = priorites || null;
+        this.tags || null;
 
         this.cardContainers = {};
     }
@@ -129,10 +127,13 @@ export class Kanban {
         element.querySelector(".card-completed").checked = item.is_completed;
 
         const priorityEl = element.querySelector(".card-priority");
-        const allPriorityClasses = Object.values(PRIORITY_CLASSES);
+        const priorities = this.priorites
+        const allPriorityClasses = priorities.map(p => p.class)
+
         priorityEl.classList.remove(...allPriorityClasses);
-        priorityEl.textContent = `Priority: ${PRIORITY_LABELS[item.priority] ?? "N/A"}`;
-        priorityEl.classList.add(PRIORITY_CLASSES[item.priority]);
+        const priority = priorities.find(i => i.id == item.priority_id);
+        priorityEl.textContent = `Priority: ${priority.title ?? "N/A"}`;
+        priorityEl.classList.add(priority.class);
 
         const currentGroup = element.dataset.groupValue;
         const newGroup = String(item[this.groupBy]);

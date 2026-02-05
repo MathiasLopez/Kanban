@@ -22,11 +22,17 @@ export async function apiFetch(endpoint, options = {}) {
 	return res.json();
 }
 
-// Tasks
-export function getTasks(boardId) {
-	return apiFetch(`/boards/${boardId}/tasks`);
+// Priorities
+export function getPrioritis() {
+	return apiFetch("/priorities/");
 }
 
+// Tags
+export function getTags(boardId) {
+	return apiFetch(`/boards/${boardId}/tags`)
+}
+
+// Tasks
 export function addTask(task, boardId) {
 	return apiFetch(`/boards/${boardId}/tasks`, {
 		method: "POST",
@@ -81,6 +87,13 @@ export function deleteBoard(board) {
 		method: "DELETE"
 	});
 }
+
+export function getBoardColumnsWithTasks(boardId) {
+	return apiFetch(`/boards/${boardId}/columns`);
+}
+
+// Colunmns
+
 
 // Users
 export function getUsers() {

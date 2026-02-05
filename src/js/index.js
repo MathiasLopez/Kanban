@@ -1,4 +1,5 @@
-import { getBoards, getBoard, addBoard, updateBoard, deleteBoard, getTasks, addTask, updateTask, deleteTask, markTaskAsCompleted, getUsers } from "./api.js";
+import { getBoards, getBoard, addBoard, updateBoard, deleteBoard, getBoardColumnsWithTasks, addTask, updateTask, deleteTask, markTaskAsCompleted, getUsers } from "./api.js";
+import { getPrioritis, getTags } from "./api.js";
 import { redirectToLogin, isAuthenticated } from "./auth.js";
 import { Kanban } from "./kanban.js";
 import { Dialog } from "./Dialog.js";
@@ -11,14 +12,8 @@ const kanban = new Kanban(
     {
         container: document.getElementById("kanban"),
         template: document.getElementById("card-template"),
-        groupBy: 'priority',
-        columns: [
-            { key: 0, title: "Normal" },
-            { key: 1, title: "Low" },
-            { key: 2, title: "Medium" },
-            { key: 3, title: "High" },
-            { key: 4, title: "Top" }
-        ],
+        groupBy: 'column_id',
+        columns: [],
         cardClick: onCardClick,
         cardCompleted: onCardCompleted,
         onCardMoved: handleCardMoved
@@ -33,6 +28,11 @@ const dialog = new Dialog({
         }
     }
 })
+
+const CURRENT_DATA = {
+    priorities: [],
+    tags: []
+};
 
 const BOARD_CACHE_KEY = "selectedBoardId";
 
@@ -56,6 +56,16 @@ const newBoard = {
     description: ""
 };
 
+const PRIORITY_CLASSES = {
+    '87303282-a1d8-48e1-84ac-6a5739a9737c': "card-priority-normal",
+    // 1: "card-priority-low",
+    // 2: "card-priority-medium",
+    // 3: "card-priority-high",
+    // 4: "card-priority-top"
+};
+
+const DEFAULT_PRIORITY_CLASS = 'card-priority-normal';
+
 (async () => {
     let loaderId;
     try {
@@ -73,7 +83,7 @@ const newBoard = {
 
         boardSelect.addEventListener("change", async e => {
             localStorage.setItem(BOARD_CACHE_KEY, e.target.value);
-            await loadTasks()
+            await loadColumnsWithTasks()
         });
 
         boardEditBtn.addEventListener("click", async () => {
@@ -116,8 +126,27 @@ async function initializeKanban() {
     addCardBtn.style.display = "inline-block";
     boardSelect.style.display = "inline-block";
     boardEditBtn.style.display = "inline-block";
-    await loadBoards();
-    await loadTasks();
+
+    const [priorities] = await Promise.all([
+        getPrioritis(),
+        loadBoards()
+    ])
+
+    CURRENT_DATA.priorities = priorities
+    const prioritesExtended = extendPrioritiesWithClass(priorities);
+    kanban.priorites = prioritesExtended;
+
+    CURRENT_DATA.tags = await getTags(boardSelect.value);
+    kanban.tags = CURRENT_DATA.tags
+
+    await loadColumnsWithTasks();
+}
+
+function extendPrioritiesWithClass(priorities) {
+    return priorities.map(i => ({
+        ...i,
+        class: PRIORITY_CLASSES[i.id] ?? DEFAULT_PRIORITY_CLASS
+    }));
 }
 
 function removeKanban() {
@@ -208,7 +237,7 @@ async function boardDialogClosed(args) {
                 await deleteBoard(args.data)
                 const option = boardSelect.querySelector(`option[value="${args.data.id}"]`);
                 option.remove();
-                await loadTasks();
+                await loadColumnsWithTasks();
             }
         }
     } catch (error) {
@@ -234,22 +263,41 @@ async function loadUsers() {
 async function loadBoards() {
     const boards = await getBoards();
     boardSelect.innerHTML = "";
-    boards.forEach(board => {
-        addBoardToSelect(board);
-    });
+    boards.forEach(addBoardToSelect);
 
     const cachedId = localStorage.getItem(BOARD_CACHE_KEY);
-    if (cachedId) {
-        const option = boardSelect.querySelector(`option[value="${cachedId}"]`);
-        if (option) {
-            boardSelect.value = cachedId;
-        } else {
-            localStorage.removeItem(BOARD_CACHE_KEY);
-        }
-    } else if (boardSelect.options.length > 0) {
-        boardSelect.value = boardSelect.options[0].value;
+    const selectedId = resolveSelectedBoardId(boards, cachedId);
+
+    if (selectedId) {
+        boardSelect.value = selectedId;
+        localStorage.setItem(BOARD_CACHE_KEY, selectedId);
+    } else {
+        localStorage.removeItem(BOARD_CACHE_KEY);
     }
+
+    return selectedId;
+
+    // TODO: What happens if there are no boards?
+    // const cachedId = localStorage.getItem(BOARD_CACHE_KEY);
+    // if (cachedId) {
+    //     const option = boardSelect.querySelector(`option[value="${cachedId}"]`);
+    //     if (option) {
+    //         boardSelect.value = cachedId;
+    //     } else {
+    //         localStorage.removeItem(BOARD_CACHE_KEY);
+    //     }
+    // } else if (boardSelect.options.length > 0) {
+    //     boardSelect.value = boardSelect.options[0].value;
+    // }
 }
+
+function resolveSelectedBoardId(boards, cachedId) {
+    if (cachedId && boards.some(b => b.id === cachedId)) {
+        return cachedId;
+    }
+    return boards.length > 0 ? boards[0].id : null;
+}
+
 
 function addBoardToSelect(board) {
     const option = document.createElement("option");
@@ -258,10 +306,21 @@ function addBoardToSelect(board) {
     boardSelect.appendChild(option);
 }
 
-async function loadTasks() {
+async function loadColumnsWithTasks() {
     const boardSelected = boardSelect.value;
     if (boardSelected) {
-        var tasks = await getTasks(boardSelected);
+        var result = await getBoardColumnsWithTasks(boardSelected);
+        const columns = result.map(({ tasks, ...column }) => column)
+        kanban.columns = columns.map(item => ({
+            key: item.id,
+            title: item.title
+        }))
+
+        const tasks = result.flatMap(column =>
+            column.tasks.map(task => ({
+                ...task
+            }))
+        )
         kanban.loadCards(tasks);
     } else {
         return []
