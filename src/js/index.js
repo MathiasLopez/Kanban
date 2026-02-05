@@ -40,6 +40,7 @@ const logoutBtn = document.getElementById("logoutBtn");
 const addBoardBtn = document.getElementById("addBoardBtn");
 const addCardBtn = document.getElementById("addCardBtn");
 const assignedSelect = document.getElementById("dialog-card-assigned");
+const prioritySelect = document.getElementById("dialog-card-priority");
 const boardSelect = document.getElementById("board-select");
 const boardEditBtn = document.getElementById("board-menu-btn");
 
@@ -47,7 +48,7 @@ const newTask = {
     title: "",
     description: "",
     is_completed: false,
-    priority: 0,
+    priority: null,
     assigned: null
 };
 
@@ -133,6 +134,7 @@ async function initializeKanban() {
     ])
 
     CURRENT_DATA.priorities = priorities
+    populatePrioritySelect(priorities);
     const prioritesExtended = extendPrioritiesWithClass(priorities);
     kanban.priorites = prioritesExtended;
 
@@ -147,6 +149,16 @@ function extendPrioritiesWithClass(priorities) {
         ...i,
         class: PRIORITY_CLASSES[i.id] ?? DEFAULT_PRIORITY_CLASS
     }));
+}
+
+function populatePrioritySelect(priorities) {
+    prioritySelect.innerHTML = "";
+    priorities.forEach(priority => {
+        const option = document.createElement("option");
+        option.value = priority.id;
+        option.textContent = priority.title;
+        prioritySelect.appendChild(option);
+    });
 }
 
 function removeKanban() {

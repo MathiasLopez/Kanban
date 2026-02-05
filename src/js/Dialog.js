@@ -49,7 +49,13 @@ export class Dialog {
       this.dialog.querySelector("#dialog-card-title").value = data.title;
       this.dialog.querySelector("#dialog-card-description").value = data.description;
       this.dialog.querySelector("#dialog-card-completed").checked = data.is_completed;
-      this.dialog.querySelector("#dialog-card-priority").value = data.priority;
+      const prioritySelect = this.dialog.querySelector("#dialog-card-priority");
+      const priorityId = data?.priority?.id ?? data?.priority_id ?? data?.priority ?? "";
+      if (priorityId) {
+        prioritySelect.value = String(priorityId);
+      } else {
+        prioritySelect.selectedIndex = 0;
+      }
       this.dialog.querySelector("#dialog-card-assigned").value = data.assigned ?? "";
     }
 
@@ -68,7 +74,13 @@ export class Dialog {
     this.currentData.description = this.dialog.querySelector("#dialog-card-description").value;
     if (!this.isBoard) {
       this.currentData.is_completed = this.dialog.querySelector("#dialog-card-completed").checked;
-      this.currentData.priority = parseInt(this.dialog.querySelector("#dialog-card-priority").value);
+      const prioritySelect = this.dialog.querySelector("#dialog-card-priority");
+      const selectedOption = prioritySelect.options[prioritySelect.selectedIndex];
+      const priorityId = selectedOption?.value ?? null;
+      const priorityTitle = selectedOption?.textContent ?? null;
+      this.currentData.priority = priorityId
+        ? { id: priorityId, title: priorityTitle }
+        : null;
       let assigned = this.dialog.querySelector("#dialog-card-assigned").value;
       this.currentData.assigned = assigned === "" ? null : assigned;
     }

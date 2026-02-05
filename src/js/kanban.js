@@ -127,13 +127,18 @@ export class Kanban {
         element.querySelector(".card-completed").checked = item.is_completed;
 
         const priorityEl = element.querySelector(".card-priority");
-        const priorities = this.priorites
-        const allPriorityClasses = priorities.map(p => p.class)
+        const priorities = this.priorites || [];
+        const allPriorityClasses = priorities.map(p => p.class);
 
         priorityEl.classList.remove(...allPriorityClasses);
-        const priority = priorities.find(i => i.id == item.priority_id);
-        priorityEl.textContent = `Priority: ${priority.title ?? "N/A"}`;
-        priorityEl.classList.add(priority.class);
+
+        const priorityId = item?.priority?.id ?? item?.priority_id ?? item?.priority ?? null;
+        const priority = priorities.find(i => i.id == priorityId);
+        const priorityTitle = priority?.title ?? item?.priority?.title ?? "N/A";
+        priorityEl.textContent = `Priority: ${priorityTitle}`;
+        if (priority?.class) {
+            priorityEl.classList.add(priority.class);
+        }
 
         const currentGroup = element.dataset.groupValue;
         const newGroup = String(item[this.groupBy]);
