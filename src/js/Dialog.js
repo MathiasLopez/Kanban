@@ -34,21 +34,20 @@ export class Dialog {
   openDialog({ data, isBoard }) {
     this.currentData = { ...data };
     this.isBoard = isBoard;
-    this.dialog.querySelector('.display-form-checkbox-row').style.display = 'inline-block'
-    this.dialog.querySelector('#dialog-card-priority').parentElement.style.display = 'inline-block'
-    this.dialog.querySelector("#dialog-card-assigned").parentElement.style.display = 'inline-block'
+    const priorityWrapper = this.dialog.querySelector('#dialog-card-priority')?.parentElement;
+    const assignedWrapper = this.dialog.querySelector("#dialog-card-assigned")?.parentElement;
+    if (priorityWrapper) priorityWrapper.style.display = 'inline-block';
+    if (assignedWrapper) assignedWrapper.style.display = 'inline-block';
     if (isBoard) {
       this.dialog.querySelector("#dialog-title").innerHTML = data.id ? "Edit board" : "New board";
       this.dialog.querySelector("#dialog-card-title").value = data.title;
       this.dialog.querySelector("#dialog-card-description").value = data.description;
-      this.dialog.querySelector('.display-form-checkbox-row').style.display = 'none'
-      this.dialog.querySelector('#dialog-card-priority').parentElement.style.display = 'none'
-      this.dialog.querySelector("#dialog-card-assigned").parentElement.style.display = 'none'
+      if (priorityWrapper) priorityWrapper.style.display = 'none';
+      if (assignedWrapper) assignedWrapper.style.display = 'none';
     } else {
       this.dialog.querySelector("#dialog-title").innerHTML = data.id ? "Edit card" : "New card";
       this.dialog.querySelector("#dialog-card-title").value = data.title;
       this.dialog.querySelector("#dialog-card-description").value = data.description;
-      this.dialog.querySelector("#dialog-card-completed").checked = data.is_completed;
       const prioritySelect = this.dialog.querySelector("#dialog-card-priority");
       const priorityId = data?.priority?.id ?? data?.priority_id ?? data?.priority ?? "";
       if (priorityId) {
@@ -73,7 +72,6 @@ export class Dialog {
     this.currentData.title = this.dialog.querySelector("#dialog-card-title").value;
     this.currentData.description = this.dialog.querySelector("#dialog-card-description").value;
     if (!this.isBoard) {
-      this.currentData.is_completed = this.dialog.querySelector("#dialog-card-completed").checked;
       const prioritySelect = this.dialog.querySelector("#dialog-card-priority");
       const selectedOption = prioritySelect.options[prioritySelect.selectedIndex];
       const priorityId = selectedOption?.value ?? null;

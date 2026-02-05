@@ -1,4 +1,4 @@
-import { getBoards, getBoard, addBoard, updateBoard, deleteBoard, getBoardColumnsWithTasks, addTask, updateTask, deleteTask, markTaskAsCompleted, getUsers } from "./api.js";
+import { getBoards, getBoard, addBoard, updateBoard, deleteBoard, getBoardColumnsWithTasks, addTask, updateTask, deleteTask, getUsers } from "./api.js";
 import { getPrioritis, getTags } from "./api.js";
 import { redirectToLogin, isAuthenticated } from "./auth.js";
 import { Kanban } from "./kanban.js";
@@ -15,7 +15,6 @@ const kanban = new Kanban(
         groupBy: 'column_id',
         columns: [],
         cardClick: onCardClick,
-        cardCompleted: onCardCompleted,
         onCardMoved: handleCardMoved
     });
 const dialog = new Dialog({
@@ -47,7 +46,6 @@ const boardEditBtn = document.getElementById("board-menu-btn");
 const newTask = {
     title: "",
     description: "",
-    is_completed: false,
     priority: null,
     assigned: null
 };
@@ -188,12 +186,6 @@ addCardBtn.onclick = async () => {
 function onCardClick(args) {
     logger.debug("onCardClicked", args);
     dialog.openDialog({ data: { ...args } });
-}
-
-async function onCardCompleted(task) {
-    logger.debug('onCardCompleted', task);
-    await markTaskAsCompleted(task);
-    kanban.updateCard(task);
 }
 
 async function handleCardMoved(args) {

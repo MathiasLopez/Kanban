@@ -64,20 +64,6 @@
   text-overflow: ellipsis;
 }
 
-/* Checkbox completed */
-.card-checkbox {
-  display: flex;
-  align-items: center;
-  gap: 4px;
-  margin: 8px 0;
-  font-size: 14px;
-  color: #444;
-}
-
-.card input[type="checkbox"] {
-  cursor: pointer;
-}
-
 /* Priority text */
 .card-priority {
   font-size: 13px;
@@ -138,12 +124,6 @@ dialog {
 
 .dialog-form textarea {
   min-height: 120px;
-}
-
-.display-form-checkbox-row {
-  display: flex;
-  align-items: center;
-  gap: 8px;
 }
 
 .dialog-form menu {

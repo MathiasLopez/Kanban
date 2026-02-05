@@ -53,12 +53,6 @@ export function deleteTask(task) {
 	});
 }
 
-export function markTaskAsCompleted(task) {
-	return apiFetch(`/tasks/${task.id}/complete`, {
-		method: "PUT"
-	});
-}
-
 //Boards
 export function getBoards() {
 	return apiFetch("/boards/");

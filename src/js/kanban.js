@@ -11,12 +11,11 @@ const PRIORITY_LABELS = {
  * @param tags List of tags. Example [{ id = 0, title = "version 1.0", class= "" }]
  */
 export class Kanban {
-    constructor({ container, template, cardClick, cardCompleted, groupBy, columns, onCardMoved, priorites, tags }) {
+    constructor({ container, template, cardClick, groupBy, columns, onCardMoved, priorites, tags }) {
         this.container = container;
         this.template = template;
         this.cards = [];
         this.onCardClick = cardClick || null;
-        this.onCardCompleted = cardCompleted || null;
         this.groupBy = groupBy || null;
         this.onCardMoved = onCardMoved || null;
         this.columns = columns || null;
@@ -123,8 +122,6 @@ export class Kanban {
     #fillCard(element, item) {
         element.querySelector(".card-title").textContent = item.title;
         element.querySelector(".card-description").textContent = item.description;
-        element.querySelector(".card-completed").disabled = item.is_completed;
-        element.querySelector(".card-completed").checked = item.is_completed;
 
         const priorityEl = element.querySelector(".card-priority");
         const priorities = this.priorites || [];
@@ -163,22 +160,8 @@ export class Kanban {
         this.#fillCard(element, item);
 
         if (this.onCardClick) {
-            element.addEventListener("click", (e) => {
-                if (e.target.type === "checkbox") {
-                    return;
-                }
+            element.addEventListener("click", () => {
                 this.onCardClick(item)
-            });
-        }
-
-        if (this.onCardCompleted) {
-            element.querySelector("#card-completed").addEventListener("change", (e) => {
-                e.stopPropagation();
-                item.is_completed = true;
-                setTimeout(() => {
-                    e.target.disabled = true;
-                }, 0);
-                this.onCardCompleted(item);
             });
         }
 
