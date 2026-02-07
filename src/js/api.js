@@ -12,7 +12,23 @@ export async function apiFetch(endpoint, options = {}) {
 	});
 
 	if (!res.ok) {
-		throw new Error(`Error ${res.status}: ${res.statusText}`);
+		let errorBody = null;
+		try {
+			errorBody = await res.json();
+		} catch {
+			try {
+				errorBody = await res.text();
+			} catch {
+				errorBody = null;
+			}
+		}
+
+		const messageSuffix = errorBody ? ` - ${JSON.stringify(errorBody)}` : "";
+		const error = new Error(`Error ${res.status}: ${res.statusText}${messageSuffix}`);
+		// TODO: surface structured error details in UI instead of stringifying
+		error.status = res.status;
+		error.body = errorBody;
+		throw error;
 	}
 
 	if (res.status === 204) {
@@ -33,13 +49,6 @@ export function getTags(boardId) {
 }
 
 // Tasks
-export function addTask(task, boardId) {
-	return apiFetch(`/boards/${boardId}/tasks`, {
-		method: "POST",
-		body: JSON.stringify(task)
-	});
-}
-
 export function updateTask(task) {
 	return apiFetch(`/tasks/${task.id}`, {
 		method: "PUT",
@@ -87,7 +96,12 @@ export function getBoardColumnsWithTasks(boardId) {
 }
 
 // Colunmns
-
+export function addTask(task, columnId) {
+	return apiFetch(`/columns/${columnId}/tasks`, {
+		method: "POST",
+		body: JSON.stringify(task)
+	});
+}
 
 // Users
 export function getUsers() {

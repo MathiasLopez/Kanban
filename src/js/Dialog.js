@@ -76,6 +76,7 @@ export class Dialog {
       const selectedOption = prioritySelect.options[prioritySelect.selectedIndex];
       const priorityId = selectedOption?.value ?? null;
       const priorityTitle = selectedOption?.textContent ?? null;
+      this.currentData.priority_id = priorityId || null;
       this.currentData.priority = priorityId
         ? { id: priorityId, title: priorityTitle }
         : null;

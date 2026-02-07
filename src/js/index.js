@@ -47,7 +47,10 @@ const newTask = {
     title: "",
     description: "",
     priority: null,
-    assigned: null
+    priority_id: null,
+    assigned: null,
+    tags: [],
+    column_id: null
 };
 
 const newBoard = {
@@ -133,6 +136,11 @@ async function initializeKanban() {
 
     CURRENT_DATA.priorities = priorities
     populatePrioritySelect(priorities);
+    const defaultPriority = priorities?.[0] ?? null;
+    newTask.priority_id = defaultPriority?.id ?? null;
+    newTask.priority = defaultPriority
+        ? { id: defaultPriority.id, title: defaultPriority.title }
+        : null;
     const prioritesExtended = extendPrioritiesWithClass(priorities);
     kanban.priorites = prioritesExtended;
 
@@ -192,12 +200,12 @@ async function handleCardMoved(args) {
     try {
         logger.debug("handleCardMoved", args);
         //TODO: disable card while it is updating
-        args.item.priority = parseInt(args.toColumn);
+        args.item.column_id = args.toColumn;
         kanban.updateCard(args.item);
         await updateTask({ id: args.item.id, priority: args.item.priority });
     } catch (error) {
         logger.error(error.message, error);
-        args.item.priority = parseInt(args.fromColumn);
+        args.item.column_id = args.fromColumn;
         kanban.updateCard(args.item);
     } finally {
         //TODO: enable card
@@ -205,19 +213,27 @@ async function handleCardMoved(args) {
 }
 
 async function cardDialogClosed(args) {
-    logger.debug("cardDialogClosed", args);
-    if (args.action === "save") {
-        if (args.data.id) {
-            await updateTask(args.data)
-            kanban.updateCard(args.data);
-        } else {
-            var response = await addTask(args.data, boardSelect.value);
-            args.data.id = response.id
-            kanban.addCard(args.data);
+    try {
+        logger.debug("cardDialogClosed", args);
+        if (args.action === "save") {
+            if (args.data.id) {
+                await updateTask(args.data)
+                kanban.updateCard(args.data);
+            } else {
+                const targetColumnId = kanban.columns?.[0]?.key;
+                if (!targetColumnId) {
+                    throw new Error("No columns available to assign the new task.");
+                }
+                var response = await addTask(args.data, targetColumnId);
+                args.data = { ...response };
+                kanban.addCard(args.data);
+            }
+        } else if (args.action === "delete") {
+            await deleteTask(args.data)
+            kanban.deleteCard(args.data);
         }
-    } else if (args.action === "delete") {
-        await deleteTask(args.data)
-        kanban.deleteCard(args.data);
+    } catch (error) {
+        logger.error(error.message, error);
     }
 }
 
