@@ -11,13 +11,14 @@ const PRIORITY_LABELS = {
  * @param tags List of tags. Example [{ id = 0, title = "version 1.0", class= "" }]
  */
 export class Kanban {
-    constructor({ container, template, cardClick, groupBy, columns, onCardMoved, priorites, tags }) {
+    constructor({ container, template, cardClick, groupBy, columns, onCardMoved, onColumnClick, priorites, tags }) {
         this.container = container;
         this.template = template;
         this.cards = [];
         this.onCardClick = cardClick || null;
         this.groupBy = groupBy || null;
         this.onCardMoved = onCardMoved || null;
+        this.onColumnClick = onColumnClick || null;
         this.columns = columns || null;
         this.priorites = priorites || null;
         this.tags || null;
@@ -70,9 +71,31 @@ export class Kanban {
             columnEl.classList.add("kanban-column");
             columnEl.dataset.groupValue = column.key;
 
+            const headerRow = document.createElement("div");
+            headerRow.classList.add("kanban-column-header");
+
             const header = document.createElement("h3");
             header.textContent = column.title;
-            columnEl.appendChild(header);
+            headerRow.appendChild(header);
+
+            if (this.onColumnClick) {
+                const editButton = document.createElement("button");
+                editButton.type = "button";
+                editButton.classList.add("column-edit-btn");
+                editButton.setAttribute("aria-label", "Edit column");
+                editButton.innerHTML = `
+                    <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+                        <path d="M6 3h9l5 5v13a1 1 0 0 1-1 1H6a1 1 0 0 1-1-1V4a1 1 0 0 1 1-1z" fill="none" stroke="currentColor" stroke-width="1.5"/>
+                        <path d="M15 3v5h5" fill="none" stroke="currentColor" stroke-width="1.5"/>
+                        <path d="M8 17l1.2-3.6 5.8-5.8 2.4 2.4-5.8 5.8L8 17z" fill="none" stroke="currentColor" stroke-width="1.5"/>
+                    </svg>
+                `;
+                editButton.addEventListener("click", () => {
+                    this.onColumnClick(column.data ?? column);
+                });
+                headerRow.appendChild(editButton);
+            }
+            columnEl.appendChild(headerRow);
 
             const cardContainer = document.createElement("div");
             cardContainer.classList.add("kanban-column-card-container");

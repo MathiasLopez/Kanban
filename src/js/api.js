@@ -103,6 +103,26 @@ export function addTask(task, columnId) {
 	});
 }
 
+export function addColumn(boardId, column) {
+	return apiFetch(`/boards/${boardId}/columns`, {
+		method: "POST",
+		body: JSON.stringify(column)
+	});
+}
+
+export function updateColumn(column) {
+	return apiFetch(`/columns/${column.id}`, {
+		method: "PUT",
+		body: JSON.stringify(column)
+	});
+}
+
+export function deleteColumn(column) {
+	return apiFetch(`/columns/${column.id}`, {
+		method: "DELETE"
+	});
+}
+
 // Users
 export function getUsers() {
 	return apiFetch("/users/");

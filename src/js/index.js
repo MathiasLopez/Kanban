@@ -1,5 +1,4 @@
-import { getBoards, getBoard, addBoard, updateBoard, deleteBoard, getBoardColumnsWithTasks, addTask, updateTask, deleteTask, getUsers } from "./api.js";
-import { getPrioritis, getTags } from "./api.js";
+import { getBoards, getBoard, addBoard, updateBoard, deleteBoard, getBoardColumnsWithTasks, addTask, updateTask, deleteTask, addColumn, updateColumn, deleteColumn, getUsers, getPrioritis, getTags } from "./api.js";
 import { redirectToLogin, isAuthenticated } from "./auth.js";
 import { Kanban } from "./kanban.js";
 import { Dialog } from "./Dialog.js";
@@ -15,13 +14,21 @@ const kanban = new Kanban(
         groupBy: 'column_id',
         columns: [],
         cardClick: onCardClick,
-        onCardMoved: handleCardMoved
+        onCardMoved: handleCardMoved,
+        onColumnClick: handleColumnClick
     });
+const DIALOG_TYPES = {
+    BOARD: "board",
+    TASK: "task",
+    COLUMN: "column"
+};
 const dialog = new Dialog({
     dialog: document.querySelector("#edit-dialog"),
     onClose: async (args) => {
-        if (args.isBoard) {
+        if (args.type === DIALOG_TYPES.BOARD) {
             await boardDialogClosed(args);
+        } else if (args.type === DIALOG_TYPES.COLUMN) {
+            await columnDialogClosed(args);
         } else {
             await cardDialogClosed(args);
         }
@@ -30,7 +37,9 @@ const dialog = new Dialog({
 
 const CURRENT_DATA = {
     priorities: [],
-    tags: []
+    tags: [],
+    users: [],
+    columns: []
 };
 
 const BOARD_CACHE_KEY = "selectedBoardId";
@@ -38,15 +47,13 @@ const BOARD_CACHE_KEY = "selectedBoardId";
 const logoutBtn = document.getElementById("logoutBtn");
 const addBoardBtn = document.getElementById("addBoardBtn");
 const addCardBtn = document.getElementById("addCardBtn");
-const assignedSelect = document.getElementById("dialog-card-assigned");
-const prioritySelect = document.getElementById("dialog-card-priority");
+const addColumnBtn = document.getElementById("addColumnBtn");
 const boardSelect = document.getElementById("board-select");
 const boardEditBtn = document.getElementById("board-menu-btn");
 
 const newTask = {
     title: "",
     description: "",
-    priority: null,
     priority_id: null,
     assigned: null,
     tags: [],
@@ -57,6 +64,69 @@ const newBoard = {
     title: "",
     description: ""
 };
+
+function buildDialogConfig(type, isEdit) {
+    if (type === DIALOG_TYPES.BOARD) {
+        return {
+            type: DIALOG_TYPES.BOARD,
+            title: isEdit ? "Edit board" : "New board",
+            fields: [
+                { id: "title", label: "Title", type: "text", required: true },
+                { id: "description", label: "Description", type: "textarea" }
+            ]
+        };
+    }
+
+    if (type === DIALOG_TYPES.COLUMN) {
+        return {
+            type: DIALOG_TYPES.COLUMN,
+            title: isEdit ? "Edit column" : "New column",
+            fields: [
+                { id: "title", label: "Title", type: "text", required: true },
+                { id: "description", label: "Description", type: "textarea" }
+            ]
+        };
+    }
+
+    return {
+        type: DIALOG_TYPES.TASK,
+        title: isEdit ? "Edit card" : "New card",
+        fields: [
+            { id: "title", label: "Title", type: "text", required: true },
+            { id: "description", label: "Description", type: "textarea" },
+            {
+                id: "priority_id",
+                label: "Priority",
+                type: "select",
+                options: () => CURRENT_DATA.priorities.map(priority => ({
+                    value: priority.id,
+                    label: priority.title
+                }))
+            },
+            {
+                id: "assigned",
+                label: "Assigned",
+                type: "select",
+                options: () => ([
+                    { value: "", label: "Unassigned" },
+                    ...CURRENT_DATA.users.map(user => ({
+                        value: user.id,
+                        label: user.username
+                    }))
+                ])
+            },
+            {
+                id: "column_id",
+                label: "Column",
+                type: "select",
+                options: () => (CURRENT_DATA.columns || []).map(column => ({
+                    value: column.id,
+                    label: column.title
+                }))
+            }
+        ]
+    };
+}
 
 const PRIORITY_CLASSES = {
     '87303282-a1d8-48e1-84ac-6a5739a9737c': "card-priority-normal",
@@ -91,7 +161,7 @@ const DEFAULT_PRIORITY_CLASS = 'card-priority-normal';
         boardEditBtn.addEventListener("click", async () => {
             logger.debug("addBoardBtn clicked", boardSelect.value);
             const board = await getBoard(boardSelect.value);
-            dialog.openDialog({ data: { ...board }, isBoard: true });
+            dialog.openDialog({ data: { ...board }, config: buildDialogConfig(DIALOG_TYPES.BOARD, true) });
         });
 
         if (await isAuthenticated()) {
@@ -126,6 +196,7 @@ function initializeLogger() {
 async function initializeKanban() {
     addBoardBtn.style.display = "inline-block";
     addCardBtn.style.display = "inline-block";
+    addColumnBtn.style.display = "inline-block";
     boardSelect.style.display = "inline-block";
     boardEditBtn.style.display = "inline-block";
 
@@ -135,12 +206,9 @@ async function initializeKanban() {
     ])
 
     CURRENT_DATA.priorities = priorities
-    populatePrioritySelect(priorities);
     const defaultPriority = priorities?.[0] ?? null;
     newTask.priority_id = defaultPriority?.id ?? null;
-    newTask.priority = defaultPriority
-        ? { id: defaultPriority.id, title: defaultPriority.title }
-        : null;
+    newTask.priority = null;
     const prioritesExtended = extendPrioritiesWithClass(priorities);
     kanban.priorites = prioritesExtended;
 
@@ -157,19 +225,10 @@ function extendPrioritiesWithClass(priorities) {
     }));
 }
 
-function populatePrioritySelect(priorities) {
-    prioritySelect.innerHTML = "";
-    priorities.forEach(priority => {
-        const option = document.createElement("option");
-        option.value = priority.id;
-        option.textContent = priority.title;
-        prioritySelect.appendChild(option);
-    });
-}
-
 function removeKanban() {
     addBoardBtn.style.display = "none";
     addCardBtn.style.display = "none";
+    addColumnBtn.style.display = "none";
     boardSelect.style.display = "none"
     boardEditBtn.style.display = "none";
     kanban.destroy()
@@ -183,17 +242,28 @@ function showAccess() {
 
 addBoardBtn.onclick = async () => {
     logger.debug("addBoardBtn clicked");
-    dialog.openDialog({ data: { ...newBoard }, isBoard: true });
+    dialog.openDialog({ data: { ...newBoard }, config: buildDialogConfig(DIALOG_TYPES.BOARD, false) });
 };
 
 addCardBtn.onclick = async () => {
     logger.debug("addCardBtn clicked");
-    dialog.openDialog({ data: { ...newTask } });
+    newTask.column_id = CURRENT_DATA.columns?.[0]?.id ?? null;
+    dialog.openDialog({ data: { ...newTask }, config: buildDialogConfig(DIALOG_TYPES.TASK, false) });
+};
+
+addColumnBtn.onclick = async () => {
+    logger.debug("addColumnBtn clicked");
+    dialog.openDialog({ data: { title: "", description: "" }, config: buildDialogConfig(DIALOG_TYPES.COLUMN, false) });
 };
 
 function onCardClick(args) {
     logger.debug("onCardClicked", args);
-    dialog.openDialog({ data: { ...args } });
+    dialog.openDialog({ data: { ...args }, config: buildDialogConfig(DIALOG_TYPES.TASK, true) });
+}
+
+function handleColumnClick(column) {
+    logger.debug("onColumnClick", column);
+    dialog.openDialog({ data: { ...column }, config: buildDialogConfig(DIALOG_TYPES.COLUMN, true) });
 }
 
 async function handleCardMoved(args) {
@@ -220,11 +290,12 @@ async function cardDialogClosed(args) {
                 await updateTask(args.data)
                 kanban.updateCard(args.data);
             } else {
-                const targetColumnId = kanban.columns?.[0]?.key;
+                const targetColumnId = args.data.column_id || CURRENT_DATA.columns?.[0]?.id;
                 if (!targetColumnId) {
                     throw new Error("No columns available to assign the new task.");
                 }
-                var response = await addTask(args.data, targetColumnId);
+                const payload = { ...args.data, column_id: targetColumnId };
+                var response = await addTask(payload, targetColumnId);
                 args.data = { ...response };
                 kanban.addCard(args.data);
             }
@@ -265,19 +336,33 @@ async function boardDialogClosed(args) {
     }
 }
 
+async function columnDialogClosed(args) {
+    try {
+        if (args.action === "save") {
+            if (args.data.id) {
+                await updateColumn(args.data);
+            } else {
+                const boardSelected = boardSelect.value;
+                if (!boardSelected) {
+                    throw new Error("No board selected to create the column.");
+                }
+                await addColumn(boardSelected, args.data);
+            }
+            await loadColumnsWithTasks();
+        } else if (args.action === "delete") {
+            if (confirm("Are you sure you want to delete the column? All tasks associated with it will be deleted.")) {
+                await deleteColumn(args.data);
+                await loadColumnsWithTasks();
+            }
+        }
+    } catch (error) {
+        logger.error(error.message, error);
+    }
+}
+
 async function loadUsers() {
     const users = await getUsers();
-
-    const emptyOption = document.createElement("option");
-    emptyOption.value = "";
-    emptyOption.textContent = "— Sin asignar —";
-    assignedSelect.appendChild(emptyOption);
-    users.forEach(user => {
-        const option = document.createElement("option");
-        option.value = user.id;
-        option.textContent = user.username;
-        assignedSelect.appendChild(option);
-    });
+    CURRENT_DATA.users = users;
 }
 
 async function loadBoards() {
@@ -331,9 +416,11 @@ async function loadColumnsWithTasks() {
     if (boardSelected) {
         var result = await getBoardColumnsWithTasks(boardSelected);
         const columns = result.map(({ tasks, ...column }) => column)
+        CURRENT_DATA.columns = columns;
         kanban.columns = columns.map(item => ({
             key: item.id,
-            title: item.title
+            title: item.title,
+            data: item
         }))
 
         const tasks = result.flatMap(column =>
