@@ -18,6 +18,38 @@
     padding: 8px;
 }
 
+.kanban-column-header {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.kanban-column-header h3 {
+    flex: 1 1 auto;
+}
+
+.column-edit-btn {
+    all: unset;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 24px;
+    height: 24px;
+    cursor: pointer;
+    color: #555;
+    border-radius: 4px;
+}
+
+.column-edit-btn:hover {
+    background: #e0e0e0;
+    color: #333;
+}
+
+.column-edit-btn svg {
+    width: 18px;
+    height: 18px;
+}
+
 .kanban-column-card-container {
     display: flex;
     flex-direction: column;
@@ -62,20 +94,6 @@
   -webkit-box-orient: vertical;
   overflow: hidden;
   text-overflow: ellipsis;
-}
-
-/* Checkbox completed */
-.card-checkbox {
-  display: flex;
-  align-items: center;
-  gap: 4px;
-  margin: 8px 0;
-  font-size: 14px;
-  color: #444;
-}
-
-.card input[type="checkbox"] {
-  cursor: pointer;
 }
 
 /* Priority text */
@@ -130,20 +148,39 @@ dialog {
   gap: 12px;
 }
 
+.dialog-form-label.field-error input,
+.dialog-form-label.field-error textarea,
+.dialog-form-label.field-error select,
+.dialog-form-label .field-error {
+  border: 1px solid #b71c1c;
+}
+
 .dialog-form-label {
   display: flex;
   flex-direction: column;
   font-size: 14px;
+  margin-bottom: 4px;
+}
+
+.dialog-form-label-row {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.dialog-required-mark {
+  color: #b71c1c;
+  font-weight: 600;
+}
+
+.dialog-form input,
+.dialog-form textarea,
+.dialog-form select {
+  border-radius: 4px;
 }
 
 .dialog-form textarea {
   min-height: 120px;
-}
-
-.display-form-checkbox-row {
-  display: flex;
-  align-items: center;
-  gap: 8px;
 }
 
 .dialog-form menu {

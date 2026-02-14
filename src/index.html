@@ -18,6 +18,7 @@
 
   <button id="addBoardBtn" style="display:none;">+ New board</button>
   <button id="addCardBtn" style="display:none;">+ New card</button>
+  <button id="addColumnBtn" style="display:none;">+ New column</button>
   <div>
     <select id="board-select" style="display:none;"></select>
     <button id="board-menu-btn" style="display:none;">⋮</button>
@@ -28,10 +29,6 @@
     <div class="card">
       <h3 class="card-title"></h3>
       <p class="card-description"></p>
-      <div class="card-checkbox">
-        <input id="card-completed" type="checkbox" class="card-completed" />
-        <label for="card-completed">Completed</label>
-      </div>
       <span class="card-priority"></span>
     </div>
   </template>
@@ -39,36 +36,7 @@
   <dialog id="edit-dialog">
     <form method="dialog" class="dialog-form">
       <h2 id="dialog-title"></h2>
-
-      <label class="dialog-form-label">
-        Title:
-        <input type="text" id="dialog-card-title" />
-      </label>
-
-      <label class="dialog-form-label">
-        Description:
-        <textarea id="dialog-card-description"></textarea>
-      </label>
-
-      <div class="display-form-checkbox-row">
-        <label for="completed">Completed:</label>
-        <input type="checkbox" id="dialog-card-completed" name="completed" />
-      </div>
-
-      <label>
-        Priority:
-        <select id="dialog-card-priority">
-          <option value="0">Normal</option>
-          <option value="1">Low</option>
-          <option value="2">Medium</option>
-          <option value="3">High</option>
-          <option value="4">Top</option>
-        </select>
-      </label>
-      <label>
-        Assigned:
-        <select id="dialog-card-assigned"></select>
-      </label>
+      <div id="dialog-dynamic-fields"></div>
 
       <menu>
         <button id="dialog-btn-delete" class="btn btn-delete" value="cancel">Delete</button>

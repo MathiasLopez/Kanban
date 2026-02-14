@@ -3,7 +3,7 @@ export class Dialog {
     this.dialog = dialog;
     this.currentData = null;
     this.onClose = onClose;
-    this.isBoard = false;
+    this.currentConfig = null;
 
     this.initEvents();
   }
@@ -16,6 +16,7 @@ export class Dialog {
     saveBtn.addEventListener("click", (e) => {
       e.preventDefault();
       const data = this.getFormData();
+      if (!data) return;
       this.close("save", data);
     });
 
@@ -31,47 +32,125 @@ export class Dialog {
     });
   }
 
-  openDialog({ data, isBoard }) {
+  openDialog({ data, config }) {
     this.currentData = { ...data };
-    this.isBoard = isBoard;
-    this.dialog.querySelector('.display-form-checkbox-row').style.display = 'inline-block'
-    this.dialog.querySelector('#dialog-card-priority').parentElement.style.display = 'inline-block'
-    this.dialog.querySelector("#dialog-card-assigned").parentElement.style.display = 'inline-block'
-    if (isBoard) {
-      this.dialog.querySelector("#dialog-title").innerHTML = data.id ? "Edit board" : "New board";
-      this.dialog.querySelector("#dialog-card-title").value = data.title;
-      this.dialog.querySelector("#dialog-card-description").value = data.description;
-      this.dialog.querySelector('.display-form-checkbox-row').style.display = 'none'
-      this.dialog.querySelector('#dialog-card-priority').parentElement.style.display = 'none'
-      this.dialog.querySelector("#dialog-card-assigned").parentElement.style.display = 'none'
-    } else {
-      this.dialog.querySelector("#dialog-title").innerHTML = data.id ? "Edit card" : "New card";
-      this.dialog.querySelector("#dialog-card-title").value = data.title;
-      this.dialog.querySelector("#dialog-card-description").value = data.description;
-      this.dialog.querySelector("#dialog-card-completed").checked = data.is_completed;
-      this.dialog.querySelector("#dialog-card-priority").value = data.priority;
-      this.dialog.querySelector("#dialog-card-assigned").value = data.assigned ?? "";
-    }
-
+    this.currentConfig = config;
+    this.renderFields();
     this.dialog.showModal();
   }
 
   close(action, data = null) {
     this.dialog.close();
     if (this.onClose) {
-      this.onClose({ action, data, isBoard: this.isBoard });
+      this.onClose({ action, data, type: this.currentConfig?.type });
     }
   }
 
-  getFormData() {
-    this.currentData.title = this.dialog.querySelector("#dialog-card-title").value;
-    this.currentData.description = this.dialog.querySelector("#dialog-card-description").value;
-    if (!this.isBoard) {
-      this.currentData.is_completed = this.dialog.querySelector("#dialog-card-completed").checked;
-      this.currentData.priority = parseInt(this.dialog.querySelector("#dialog-card-priority").value);
-      let assigned = this.dialog.querySelector("#dialog-card-assigned").value;
-      this.currentData.assigned = assigned === "" ? null : assigned;
+  renderFields() {
+    if (!this.currentConfig) return;
+
+    const dialogTitle = this.dialog.querySelector("#dialog-title");
+    const title = this.currentConfig.title;
+    if (dialogTitle) {
+      dialogTitle.textContent = title ?? "";
     }
-    return this.currentData;
+
+    const deleteBtn = this.dialog.querySelector("#dialog-btn-delete");
+    const allowDelete = this.currentConfig.allowDelete ?? true;
+    if (deleteBtn) {
+      deleteBtn.style.display = allowDelete && this.currentData?.id ? "inline-block" : "none";
+    }
+
+    const fieldContainer = this.dialog.querySelector("#dialog-dynamic-fields");
+    if (!fieldContainer) return;
+    fieldContainer.innerHTML = "";
+
+    const fieldValues = { ...this.currentData };
+
+    (this.currentConfig.fields || []).forEach(field => {
+      const wrapper = document.createElement("label");
+      wrapper.classList.add("dialog-form-label");
+      const labelRow = document.createElement("span");
+      labelRow.classList.add("dialog-form-label-row");
+      const labelText = document.createElement("span");
+      labelText.textContent = `${field.label}:`;
+      labelRow.appendChild(labelText);
+
+      let input;
+      if (field.type === "textarea") {
+        input = document.createElement("textarea");
+      } else if (field.type === "select") {
+        input = document.createElement("select");
+        const options = typeof field.options === "function" ? field.options() : (field.options || []);
+        options.forEach(optionItem => {
+          const option = document.createElement("option");
+          option.value = optionItem.value;
+          option.textContent = optionItem.label;
+          input.appendChild(option);
+        });
+      } else {
+        input = document.createElement("input");
+        input.type = field.type || "text";
+      }
+
+      input.id = field.id;
+      if (field.required) {
+        input.required = true;
+        wrapper.classList.add("is-required");
+        const requiredMark = document.createElement("span");
+        requiredMark.classList.add("dialog-required-mark");
+        requiredMark.textContent = "*";
+        labelRow.appendChild(requiredMark);
+      }
+
+      const value = fieldValues?.[field.id];
+      if (value !== undefined && value !== null) {
+        input.value = String(value);
+      } else if (field.type === "select") {
+        input.selectedIndex = 0;
+      }
+
+      wrapper.appendChild(labelRow);
+      wrapper.appendChild(input);
+      fieldContainer.appendChild(wrapper);
+    });
   }
+
+  getFormData() {
+    if (!this.currentConfig) {
+      return this.currentData;
+    }
+
+    const values = {};
+    let hasErrors = false;
+    (this.currentConfig.fields || []).forEach(field => {
+      const input = this.dialog.querySelector(`#${field.id}`);
+      if (!input) return;
+      const rawValue = input.value;
+      if (field.type === "select" && rawValue === "") {
+        values[field.id] = null;
+      } else {
+        values[field.id] = rawValue;
+      }
+      const label = input.closest(".dialog-form-label");
+      if (label) {
+        label.classList.remove("field-error");
+      }
+      input.classList.remove("field-error");
+      if (field.required && !values[field.id]) {
+        hasErrors = true;
+        if (label) {
+          label.classList.add("field-error");
+        }
+        input.classList.add("field-error");
+      }
+    });
+
+    if (hasErrors) {
+      return null;
+    }
+
+    return { ...this.currentData, ...values };
+  }
+
 }

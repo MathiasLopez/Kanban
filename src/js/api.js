@@ -12,7 +12,23 @@ export async function apiFetch(endpoint, options = {}) {
 	});
 
 	if (!res.ok) {
-		throw new Error(`Error ${res.status}: ${res.statusText}`);
+		let errorBody = null;
+		try {
+			errorBody = await res.json();
+		} catch {
+			try {
+				errorBody = await res.text();
+			} catch {
+				errorBody = null;
+			}
+		}
+
+		const messageSuffix = errorBody ? ` - ${JSON.stringify(errorBody)}` : "";
+		const error = new Error(`Error ${res.status}: ${res.statusText}${messageSuffix}`);
+		// TODO: surface structured error details in UI instead of stringifying
+		error.status = res.status;
+		error.body = errorBody;
+		throw error;
 	}
 
 	if (res.status === 204) {
@@ -22,18 +38,17 @@ export async function apiFetch(endpoint, options = {}) {
 	return res.json();
 }
 
+// Priorities
+export function getPrioritis() {
+	return apiFetch("/priorities/");
+}
+
+// Tags
+export function getTags(boardId) {
+	return apiFetch(`/boards/${boardId}/tags`)
+}
+
 // Tasks
-export function getTasks(boardId) {
-	return apiFetch(`/boards/${boardId}/tasks`);
-}
-
-export function addTask(task, boardId) {
-	return apiFetch(`/boards/${boardId}/tasks`, {
-		method: "POST",
-		body: JSON.stringify(task)
-	});
-}
-
 export function updateTask(task) {
 	return apiFetch(`/tasks/${task.id}`, {
 		method: "PUT",
@@ -44,12 +59,6 @@ export function updateTask(task) {
 export function deleteTask(task) {
 	return apiFetch(`/tasks/${task.id}`, {
 		method: "DELETE"
-	});
-}
-
-export function markTaskAsCompleted(task) {
-	return apiFetch(`/tasks/${task.id}/complete`, {
-		method: "PUT"
 	});
 }
 
@@ -78,6 +87,38 @@ export function updateBoard(board) {
 
 export function deleteBoard(board) {
 	return apiFetch(`/boards/${board.id}`, {
+		method: "DELETE"
+	});
+}
+
+export function getBoardColumnsWithTasks(boardId) {
+	return apiFetch(`/boards/${boardId}/columns`);
+}
+
+// Colunmns
+export function addTask(task, columnId) {
+	return apiFetch(`/columns/${columnId}/tasks`, {
+		method: "POST",
+		body: JSON.stringify(task)
+	});
+}
+
+export function addColumn(boardId, column) {
+	return apiFetch(`/boards/${boardId}/columns`, {
+		method: "POST",
+		body: JSON.stringify(column)
+	});
+}
+
+export function updateColumn(column) {
+	return apiFetch(`/columns/${column.id}`, {
+		method: "PUT",
+		body: JSON.stringify(column)
+	});
+}
+
+export function deleteColumn(column) {
+	return apiFetch(`/columns/${column.id}`, {
 		method: "DELETE"
 	});
 }

@@ -6,7 +6,6 @@ The goal is to build a **lightweight and modular application** that allows you t
 
 - Create, edit, and delete boards.
 - Create, edit, and delete cards within each board.
-- Mark cards as completed.
 - Assign and display priorities with different colors and styles.
 
 The application is **powered by a backend** already deployed at:  

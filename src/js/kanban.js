@@ -6,24 +6,22 @@ const PRIORITY_LABELS = {
     4: "Top",
 };
 
-const PRIORITY_CLASSES = {
-    0: "card-priority-normal",
-    1: "card-priority-low",
-    2: "card-priority-medium",
-    3: "card-priority-high",
-    4: "card-priority-top"
-};
-
+/**
+ * @param priorities List of priorities. Example [{ id = 0, title = "High", class= "" }]
+ * @param tags List of tags. Example [{ id = 0, title = "version 1.0", class= "" }]
+ */
 export class Kanban {
-    constructor({ container, template, cardClick, cardCompleted, groupBy, columns, onCardMoved }) {
+    constructor({ container, template, cardClick, groupBy, columns, onCardMoved, onColumnClick, priorites, tags }) {
         this.container = container;
         this.template = template;
         this.cards = [];
         this.onCardClick = cardClick || null;
-        this.onCardCompleted = cardCompleted || null;
         this.groupBy = groupBy || null;
         this.onCardMoved = onCardMoved || null;
+        this.onColumnClick = onColumnClick || null;
         this.columns = columns || null;
+        this.priorites = priorites || null;
+        this.tags || null;
 
         this.cardContainers = {};
     }
@@ -73,9 +71,31 @@ export class Kanban {
             columnEl.classList.add("kanban-column");
             columnEl.dataset.groupValue = column.key;
 
+            const headerRow = document.createElement("div");
+            headerRow.classList.add("kanban-column-header");
+
             const header = document.createElement("h3");
             header.textContent = column.title;
-            columnEl.appendChild(header);
+            headerRow.appendChild(header);
+
+            if (this.onColumnClick) {
+                const editButton = document.createElement("button");
+                editButton.type = "button";
+                editButton.classList.add("column-edit-btn");
+                editButton.setAttribute("aria-label", "Edit column");
+                editButton.innerHTML = `
+                    <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+                        <path d="M6 3h9l5 5v13a1 1 0 0 1-1 1H6a1 1 0 0 1-1-1V4a1 1 0 0 1 1-1z" fill="none" stroke="currentColor" stroke-width="1.5"/>
+                        <path d="M15 3v5h5" fill="none" stroke="currentColor" stroke-width="1.5"/>
+                        <path d="M8 17l1.2-3.6 5.8-5.8 2.4 2.4-5.8 5.8L8 17z" fill="none" stroke="currentColor" stroke-width="1.5"/>
+                    </svg>
+                `;
+                editButton.addEventListener("click", () => {
+                    this.onColumnClick(column.data ?? column);
+                });
+                headerRow.appendChild(editButton);
+            }
+            columnEl.appendChild(headerRow);
 
             const cardContainer = document.createElement("div");
             cardContainer.classList.add("kanban-column-card-container");
@@ -125,14 +145,20 @@ export class Kanban {
     #fillCard(element, item) {
         element.querySelector(".card-title").textContent = item.title;
         element.querySelector(".card-description").textContent = item.description;
-        element.querySelector(".card-completed").disabled = item.is_completed;
-        element.querySelector(".card-completed").checked = item.is_completed;
 
         const priorityEl = element.querySelector(".card-priority");
-        const allPriorityClasses = Object.values(PRIORITY_CLASSES);
+        const priorities = this.priorites || [];
+        const allPriorityClasses = priorities.map(p => p.class);
+
         priorityEl.classList.remove(...allPriorityClasses);
-        priorityEl.textContent = `Priority: ${PRIORITY_LABELS[item.priority] ?? "N/A"}`;
-        priorityEl.classList.add(PRIORITY_CLASSES[item.priority]);
+
+        const priorityId = item?.priority?.id ?? item?.priority_id ?? item?.priority ?? null;
+        const priority = priorities.find(i => i.id == priorityId);
+        const priorityTitle = priority?.title ?? item?.priority?.title ?? "N/A";
+        priorityEl.textContent = `Priority: ${priorityTitle}`;
+        if (priority?.class) {
+            priorityEl.classList.add(priority.class);
+        }
 
         const currentGroup = element.dataset.groupValue;
         const newGroup = String(item[this.groupBy]);
@@ -157,22 +183,8 @@ export class Kanban {
         this.#fillCard(element, item);
 
         if (this.onCardClick) {
-            element.addEventListener("click", (e) => {
-                if (e.target.type === "checkbox") {
-                    return;
-                }
+            element.addEventListener("click", () => {
                 this.onCardClick(item)
-            });
-        }
-
-        if (this.onCardCompleted) {
-            element.querySelector("#card-completed").addEventListener("change", (e) => {
-                e.stopPropagation();
-                item.is_completed = true;
-                setTimeout(() => {
-                    e.target.disabled = true;
-                }, 0);
-                this.onCardCompleted(item);
             });
         }
 
