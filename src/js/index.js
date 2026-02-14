@@ -272,7 +272,7 @@ async function handleCardMoved(args) {
         //TODO: disable card while it is updating
         args.item.column_id = args.toColumn;
         kanban.updateCard(args.item);
-        await updateTask({ id: args.item.id, priority: args.item.priority });
+        await updateTask(args.item);
     } catch (error) {
         logger.error(error.message, error);
         args.item.column_id = args.fromColumn;
