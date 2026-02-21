@@ -7,24 +7,49 @@ export function redirectToLogin() {
     window.location.href = `${getConfig().SSO_BASE_URL}login?redirect=${encodeURIComponent(REDIRECT_URI)}`;
 }
 
-export async function isAuthenticated() {
-    try {
-        const res = await fetch(`${getConfig().SSO_BASE_URL}api/check-sso-token`, {
-            method: 'GET',
-            credentials: 'include'
-        });
+const DEVICE_ID_KEY = "deviceId";
+const TENANT_ID = "00000000-0000-0000-0000-000000000000";
 
-        if (res.ok) {
-            logger.debug('Authenticated user', await res.json())
-            return true;
-        } else if (res.status === 401) {
-            logger.warn('Invalid or expired session', res)
-        } else {
-            logger.warn(`Error checking if the user is authenticated.`, res);
-        }
-
-    } catch (err) {
-        logger.warn('Error verifying whether the user is authenticated.', err);
+export function getDeviceId() {
+    let deviceId = localStorage.getItem(DEVICE_ID_KEY);
+    if (!deviceId) {
+        deviceId = crypto.randomUUID();
+        localStorage.setItem(DEVICE_ID_KEY, deviceId);
     }
-    return false;
+    return deviceId;
+}
+
+export async function refresh() {
+    try {
+        const res = await fetch(`${getConfig().SSO_BASE_URL}api/refresh`, {
+            method: "POST",
+            credentials: "include",
+            headers: {
+                "X-Device-Id": getDeviceId()
+            }
+        });
+        if (!res.ok) {
+            return false;
+        }
+        await res.json().catch(() => null);
+        return true;
+    } catch (err) {
+        logger.warn("Error refreshing token.", err);
+        return false;
+    }
+}
+
+export async function logout() {
+    try {
+        await fetch(`${getConfig().SSO_BASE_URL}api/logout`, {
+            method: "POST",
+            credentials: "include",
+            headers: {
+                "X-Device-Id": getDeviceId(),
+                "X-Tenant-Id": TENANT_ID
+            }
+        });
+    } catch (err) {
+        logger.warn("Error during logout.", err);
+    }
 }

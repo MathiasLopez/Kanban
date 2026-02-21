@@ -1,5 +1,5 @@
 import { getBoards, getBoard, addBoard, updateBoard, deleteBoard, getBoardColumnsWithTasks, addTask, updateTask, deleteTask, addColumn, updateColumn, deleteColumn, getUsers, getPrioritis, getTags } from "./api.js";
-import { redirectToLogin, isAuthenticated } from "./auth.js";
+import { redirectToLogin, refresh, logout } from "./auth.js";
 import { Kanban } from "./kanban.js";
 import { Dialog } from "./Dialog.js";
 import logger from "./logger.js";
@@ -149,7 +149,8 @@ const DEFAULT_PRIORITY_CLASS = 'card-priority-normal';
             redirectToLogin();
         });
 
-        logoutBtn.addEventListener("click", () => {
+        logoutBtn.addEventListener("click", async () => {
+            await logout();
             showAccess();
         });
 
@@ -164,7 +165,7 @@ const DEFAULT_PRIORITY_CLASS = 'card-priority-normal';
             dialog.openDialog({ data: { ...board }, config: buildDialogConfig(DIALOG_TYPES.BOARD, true) });
         });
 
-        if (await isAuthenticated()) {
+        if (await refresh()) {
             loginBtn.style.display = "none";
             logoutBtn.style.display = "inline-block";
             await loadUsers();

@@ -1,15 +1,27 @@
 import getConfig from "./config.js"
+import { refresh, logout } from "./auth.js";
 
 export async function apiFetch(endpoint, options = {}) {
 	const headers = {
 		"Content-Type": "application/json",
 	};
 
-	const res = await fetch(`${getConfig().API_URL}${endpoint}`, {
+	const makeRequest = () => fetch(`${getConfig().API_URL}${endpoint}`, {
 		...options,
 		headers,
 		credentials: "include"
 	});
+
+	let res = await makeRequest();
+
+	if (res.status === 401) {
+		const refreshed = await refresh();
+		if (refreshed) {
+			res = await makeRequest();
+		} else {
+			await logout();
+		}
+	}
 
 	if (!res.ok) {
 		let errorBody = null;
