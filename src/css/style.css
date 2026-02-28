@@ -1,3 +1,5 @@
+@import "../js/components/table/table.css";
+
 /* Board */
 .kanban-content {
     display: flex;
@@ -148,9 +150,9 @@ dialog {
   gap: 12px;
 }
 
-.dialog-form-label.field-error input,
-.dialog-form-label.field-error textarea,
-.dialog-form-label.field-error select,
+.dialog-form-label.field-error > input,
+.dialog-form-label.field-error > textarea,
+.dialog-form-label.field-error > select,
 .dialog-form-label .field-error {
   border: 1px solid #b71c1c;
 }

@@ -1,0 +1,97 @@
+.dialog-table {
+  border: 1px solid #e5e5e5;
+  border-radius: 10px;
+  background: #ffffff;
+  overflow: hidden;
+}
+
+.dialog-form-label.field-error .dialog-table {
+  border-color: #b71c1c;
+}
+
+.dialog-table table {
+  width: 100%;
+  border-collapse: collapse;
+  border: none;
+}
+
+.dialog-table th,
+.dialog-table td {
+  padding: 10px 12px;
+  text-align: left;
+}
+
+.dialog-table thead {
+  background: #f7f7f7;
+  font-size: 12px;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: #5b5b5b;
+}
+
+.dialog-table tbody tr {
+  transition: background 150ms ease;
+}
+
+.dialog-table tbody tr:hover {
+  background: #f5f9ff;
+}
+
+.dialog-table input {
+  width: 100%;
+  border: 1px solid #e0e0e0;
+  border-radius: 8px;
+  padding: 8px 10px;
+  font-size: 13px;
+  transition: border-color 150ms ease, box-shadow 150ms ease;
+}
+
+.dialog-table input:focus {
+  outline: none;
+  border-color: #6aa9ff;
+  box-shadow: 0 0 0 3px rgba(106, 169, 255, 0.2);
+}
+
+.dialog-table-actions {
+  width: 48px;
+  text-align: center;
+}
+
+.dialog-table-delete {
+  all: unset;
+  cursor: pointer;
+  width: 28px;
+  height: 28px;
+  border-radius: 6px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  color: #7a7a7a;
+  transition: background 150ms ease, color 150ms ease;
+}
+
+.dialog-table-delete:hover {
+  background: rgba(244, 67, 54, 0.12);
+  color: #d32f2f;
+}
+
+.dialog-table-add {
+  all: unset;
+  display: block;
+  width: 100%;
+  text-align: center;
+  padding: 10px 12px;
+  border-top: 1px dashed #e0e0e0;
+  background: #fafafa;
+  color: #4d4d4d;
+  font-size: 12px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  cursor: pointer;
+  transition: background 150ms ease, color 150ms ease;
+}
+
+.dialog-table-add:hover {
+  background: #f0f6ff;
+  color: #2f6ed3;
+}

@@ -60,6 +60,26 @@ export function getTags(boardId) {
 	return apiFetch(`/boards/${boardId}/tags`)
 }
 
+export function addTag(boardId, tag) {
+	return apiFetch(`/boards/${boardId}/tags`, {
+		method: "POST",
+		body: JSON.stringify(tag)
+	});
+}
+
+export function updateTag(tagId, tag) {
+	return apiFetch(`/tags/${tagId}`, {
+		method: "PUT",
+		body: JSON.stringify(tag)
+	});
+}
+
+export function deleteTag(tagId) {
+	return apiFetch(`/tags/${tagId}`, {
+		method: "DELETE"
+	});
+}
+
 // Tasks
 export function updateTask(task) {
 	return apiFetch(`/tasks/${task.id}`, {
