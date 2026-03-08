@@ -159,3 +159,7 @@ export function deleteColumn(column) {
 export function getUsers() {
 	return apiFetch("/users/");
 }
+
+export function getBoardUsers(boardId) {
+	return apiFetch(`/boards/${boardId}/users`);
+}

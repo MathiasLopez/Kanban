@@ -1,4 +1,4 @@
-import { getBoards, getBoard, addBoard, updateBoard, deleteBoard, getBoardColumnsWithTasks, addTask, updateTask, deleteTask, addColumn, updateColumn, deleteColumn, getUsers, getPrioritis, getTags, addTag, updateTag, deleteTag } from "./api.js";
+import { getBoards, getBoard, addBoard, updateBoard, deleteBoard, getBoardColumnsWithTasks, addTask, updateTask, deleteTask, addColumn, updateColumn, deleteColumn, getBoardUsers, getPrioritis, getTags, addTag, updateTag, deleteTag } from "./api.js";
 import { redirectToLogin, refresh, logout } from "./auth.js";
 import { Kanban } from "./kanban.js";
 import { Dialog } from "./Dialog.js";
@@ -41,7 +41,7 @@ const dialog = new Dialog({
 const CURRENT_DATA = {
     priorities: [],
     tags: [],
-    users: [],
+    boardUsers: [],
     columns: [],
     boards: []
 };
@@ -169,7 +169,7 @@ function buildDialogConfig(type, isEdit) {
                 type: "select",
                 options: () => ([
                     { value: "", label: "Unassigned" },
-                    ...CURRENT_DATA.users.map(user => ({
+                    ...CURRENT_DATA.boardUsers.map(user => ({
                         value: user.id,
                         label: user.username
                     }))
@@ -225,7 +225,8 @@ const DEFAULT_PRIORITY_CLASS = 'card-priority-normal';
         });
 
         boardSelect.addEventListener("change", async e => {
-            localStorage.setItem(BOARD_CACHE_KEY, e.target.value);
+            const nextBoardId = e.target.value;
+            localStorage.setItem(BOARD_CACHE_KEY, nextBoardId);
             await refreshBoardData();
         });
 
@@ -250,7 +251,6 @@ const DEFAULT_PRIORITY_CLASS = 'card-priority-normal';
         if (await refresh()) {
             loginBtn.style.display = "none";
             logoutBtn.style.display = "inline-block";
-            await loadUsers();
             await initializeKanban();
         } else {
             showAccess();
@@ -619,9 +619,21 @@ async function columnDialogClosed(args) {
     return true;
 }
 
-async function loadUsers() {
-    const users = await getUsers();
-    CURRENT_DATA.users = users;
+async function loadBoardUsers(boardId) {
+    if (!boardId) {
+        CURRENT_DATA.boardUsers = [];
+        return [];
+    }
+
+    try {
+        const users = await getBoardUsers(boardId);
+        CURRENT_DATA.boardUsers = Array.isArray(users) ? users : [];
+    } catch (error) {
+        logger.error(error.message, error);
+        CURRENT_DATA.boardUsers = [];
+    }
+
+    return CURRENT_DATA.boardUsers;
 }
 
 async function loadBoards() {
@@ -685,6 +697,7 @@ async function loadTags() {
 }
 
 async function refreshBoardData() {
+    await loadBoardUsers(boardSelect.value);
     await loadTags();
     await loadColumnsWithTasks();
 }
