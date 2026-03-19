@@ -5,6 +5,11 @@
   overflow: hidden;
 }
 
+.dialog-table-scroll {
+  max-height: 260px;
+  overflow-y: auto;
+}
+
 .dialog-form-label.field-error .dialog-table {
   border-color: #b71c1c;
 }

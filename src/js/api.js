@@ -160,6 +160,37 @@ export function getUsers() {
 	return apiFetch("/users/");
 }
 
-export function getBoardUsers(boardId) {
-	return apiFetch(`/boards/${boardId}/users`);
+export function getCurrentUser(boardId = null) {
+	const query = boardId ? `?board_id=${boardId}` : "";
+	return apiFetch(`/users/me${query}`);
+}
+
+// Roles
+export function getRoles(boardId) {
+	return apiFetch(`/roles/?board_id=${boardId}`);
+}
+
+// Board members
+export function getBoardMembers(boardId) {
+	return apiFetch(`/boards/${boardId}/members`);
+}
+
+export function addBoardMember(boardId, payload) {
+	return apiFetch(`/boards/${boardId}/members`, {
+		method: "POST",
+		body: JSON.stringify(payload)
+	});
+}
+
+export function updateBoardMember(boardId, userId, payload) {
+	return apiFetch(`/boards/${boardId}/members/${userId}`, {
+		method: "PATCH",
+		body: JSON.stringify(payload)
+	});
+}
+
+export function deleteBoardMember(boardId, userId) {
+	return apiFetch(`/boards/${boardId}/members/${userId}`, {
+		method: "DELETE"
+	});
 }

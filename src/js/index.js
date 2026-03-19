@@ -1,4 +1,4 @@
-import { getBoards, getBoard, addBoard, updateBoard, deleteBoard, getBoardColumnsWithTasks, addTask, updateTask, deleteTask, addColumn, updateColumn, deleteColumn, getBoardUsers, getPrioritis, getTags, addTag, updateTag, deleteTag } from "./api.js";
+import { getBoards, getBoard, addBoard, updateBoard, deleteBoard, getBoardColumnsWithTasks, addTask, updateTask, deleteTask, addColumn, updateColumn, deleteColumn, getBoardMembers, getPrioritis, getTags, addTag, updateTag, deleteTag, getRoles, addBoardMember, updateBoardMember, deleteBoardMember, getUsers, getCurrentUser } from "./api.js";
 import { redirectToLogin, refresh, logout } from "./auth.js";
 import { Kanban } from "./kanban.js";
 import { Dialog } from "./Dialog.js";
@@ -41,7 +41,10 @@ const dialog = new Dialog({
 const CURRENT_DATA = {
     priorities: [],
     tags: [],
-    boardUsers: [],
+    boardMembers: [],
+    roles: [],
+    allUsers: [],
+    currentUser: null,
     columns: [],
     boards: []
 };
@@ -55,7 +58,8 @@ const addColumnBtn = document.getElementById("addColumnBtn");
 const boardSelect = document.getElementById("board-select");
 const boardEditBtn = document.getElementById("board-edit-btn");
 const boardSettingsBtn = document.getElementById("board-menu-btn");
-
+const emptyState = document.getElementById("empty-state");
+const emptyCreateBtn = document.getElementById("empty-create-btn");
 const newTask = {
     title: "",
     description: "",
@@ -109,31 +113,76 @@ function buildDialogConfig(type, isEdit) {
     }
 
     if (type === DIALOG_TYPES.BOARD_SETTINGS) {
+        const fields = [];
+        if (hasPermission("board.update")) {
+            fields.push({
+                id: "columns",
+                label: "Columns",
+                type: "table",
+                maxVisibleRows: 3,
+                columns: [
+                    { key: "title", label: "Title", type: "text", required: true },
+                    { key: "description", label: "Description", type: "text" }
+                ],
+                addButtonLabel: "Add column"
+            });
+        }
+        if (hasPermission("tag.manage")) {
+            fields.push({
+                id: "tags",
+                label: "Tags",
+                type: "table",
+                maxVisibleRows: 3,
+                columns: [
+                    { key: "title", label: "Title", type: "text", required: true }
+                ],
+                addButtonLabel: "Add tag"
+            });
+        }
+        if (hasPermission("board.manage_members")) {
+            fields.push({
+                id: "members",
+                label: "Members",
+                type: "table",
+                maxVisibleRows: 3,
+                columns: [
+                    {
+                        key: "user_id",
+                        label: "User",
+                        type: "select",
+                        required: true,
+                        readOnly: true,
+                        options: (row = {}) => {
+                            const currentId = row.user_id;
+                            const available = CURRENT_DATA.allUsers.filter(user =>
+                                user.id === currentId ||
+                                !CURRENT_DATA.boardMembers.some(m => m.user_id === user.id)
+                            );
+                            return available.map(user => ({
+                                value: user.id,
+                                label: user.username
+                            }));
+                        }
+                    },
+                    {
+                        key: "role_id",
+                        label: "Role",
+                        type: "select",
+                        required: true,
+                        options: () => CURRENT_DATA.roles.map(role => ({
+                            value: role.id,
+                            label: role.name
+                        }))
+                    }
+                ],
+                addButtonLabel: "Add member"
+            });
+        }
         return {
             type: DIALOG_TYPES.BOARD_SETTINGS,
             title: "Board settings",
             allowDelete: false,
-            fields: [
-                {
-                    id: "columns",
-                    label: "Columns",
-                    type: "table",
-                    columns: [
-                        { key: "title", label: "Title", type: "text", required: true },
-                        { key: "description", label: "Description", type: "text" }
-                    ],
-                    addButtonLabel: "Add column"
-                },
-                {
-                    id: "tags",
-                    label: "Tags",
-                    type: "table",
-                    columns: [
-                        { key: "title", label: "Title", type: "text", required: true }
-                    ],
-                    addButtonLabel: "Add tag"
-                }
-            ]
+            fields
         };
     }
 
@@ -169,9 +218,9 @@ function buildDialogConfig(type, isEdit) {
                 type: "select",
                 options: () => ([
                     { value: "", label: "Unassigned" },
-                    ...CURRENT_DATA.boardUsers.map(user => ({
-                        value: user.id,
-                        label: user.username
+                    ...CURRENT_DATA.boardMembers.map(member => ({
+                        value: member.user_id,
+                        label: member.username
                     }))
                 ])
             },
@@ -242,7 +291,13 @@ const DEFAULT_PRIORITY_CLASS = 'card-priority-normal';
                 data: {
                     board_id: boardSelect.value,
                     columns: (CURRENT_DATA.columns || []).map(column => ({ ...column })),
-                    tags: (CURRENT_DATA.tags || []).map(tag => ({ ...tag }))
+                    tags: (CURRENT_DATA.tags || []).map(tag => ({ ...tag })),
+                    members: (CURRENT_DATA.boardMembers || []).map(member => ({
+                        id: member.user_id,
+                        user_id: member.user_id,
+                        role_id: member.role_id,
+                        username: member.username
+                    }))
                 },
                 config: buildDialogConfig(DIALOG_TYPES.BOARD_SETTINGS)
             });
@@ -306,6 +361,56 @@ function extendPrioritiesWithClass(priorities) {
     }));
 }
 
+async function loadRoles(boardId) {
+    try {
+        CURRENT_DATA.roles = await getRoles(boardId);
+    } catch (error) {
+        logger.warn("Failed to load roles", error);
+        CURRENT_DATA.roles = [];
+    }
+    return CURRENT_DATA.roles;
+}
+
+async function loadUsers() {
+    try {
+        CURRENT_DATA.allUsers = await getUsers();
+    } catch (error) {
+        logger.error(error.message, error);
+        CURRENT_DATA.allUsers = [];
+    }
+}
+
+async function loadCurrentUser(boardId) {
+    try {
+        CURRENT_DATA.currentUser = await getCurrentUser(boardId);
+    } catch (error) {
+        logger.error("Failed to load current user", error);
+        CURRENT_DATA.currentUser = null;
+    }
+    return CURRENT_DATA.currentUser;
+}
+
+function hasPermission(name) {
+    const perms = CURRENT_DATA.currentUser?.role?.permissions;
+    if (!Array.isArray(perms)) return false;
+    return perms.some(p => p.name === name);
+}
+
+function updateActionVisibility() {
+    const hasBoard = Boolean(boardSelect.value);
+    boardEditBtn.style.display = hasBoard && hasPermission("board.update") ? "inline-block" : "none";
+    const showSettings = hasBoard && canShowBoardSettings();
+    boardSettingsBtn.style.display = showSettings ? "inline-block" : "none";
+    addCardBtn.style.display = hasBoard && hasPermission("task.create") ? "inline-block" : "none";
+    addColumnBtn.style.display = hasBoard && hasPermission("board.update") ? "inline-block" : "none";
+}
+
+function canShowBoardSettings() {
+    return hasPermission("board.update")
+        || hasPermission("tag.manage")
+        || hasPermission("board.manage_members");
+}
+
 function removeKanban() {
     addBoardBtn.style.display = "none";
     addCardBtn.style.display = "none";
@@ -329,6 +434,8 @@ addBoardBtn.onclick = async () => {
         config: buildDialogConfig(DIALOG_TYPES.BOARD, false)
     });
 };
+
+emptyCreateBtn.onclick = () => addBoardBtn.onclick();
 
 addCardBtn.onclick = async () => {
     logger.debug("addCardBtn clicked");
@@ -400,6 +507,7 @@ async function cardDialogClosed(args) {
         }
     } catch (error) {
         logger.error(error.message, error);
+        return false;
     }
     return true;
 }
@@ -476,8 +584,10 @@ async function boardSettingsDialogClosed(args) {
 
         const nextColumns = Array.isArray(args.data?.columns) ? args.data.columns : [];
         const nextTags = Array.isArray(args.data?.tags) ? args.data.tags : [];
+        const nextMembers = Array.isArray(args.data?.members) ? args.data.members : [];
         const prevColumns = Array.isArray(CURRENT_DATA.columns) ? CURRENT_DATA.columns : [];
         const prevTags = Array.isArray(CURRENT_DATA.tags) ? CURRENT_DATA.tags : [];
+        const prevMembers = Array.isArray(CURRENT_DATA.boardMembers) ? CURRENT_DATA.boardMembers : [];
 
         const normalizedColumns = nextColumns.map(column => ({
             ...column,
@@ -488,6 +598,11 @@ async function boardSettingsDialogClosed(args) {
             ...tag,
             title: normalizeText(tag?.title)
         }));
+        const normalizedMembers = nextMembers.map(member => ({
+            ...member,
+            user_id: member.user_id || member.id,
+            role_id: member.role_id
+        })).filter(member => member.user_id && member.role_id);
 
         if (normalizedColumns.some(column => !column.title)) {
             alert("Columns require a non-empty title.");
@@ -495,6 +610,16 @@ async function boardSettingsDialogClosed(args) {
         }
         if (normalizedTags.some(tag => !tag.title)) {
             alert("Tags require a non-empty title.");
+            return false;
+        }
+        if (normalizedMembers.some(m => !m.user_id || !m.role_id)) {
+            alert("Members require a user and a role.");
+            return false;
+        }
+        const memberIds = normalizedMembers.map(m => m.user_id);
+        const memberIdSet = new Set(memberIds);
+        if (memberIdSet.size !== memberIds.length) {
+            alert("Members must be unique per user.");
             return false;
         }
 
@@ -569,6 +694,27 @@ async function boardSettingsDialogClosed(args) {
 
         const tagsToDelete = prevTags.filter(tag => !nextTagsById.has(tag.id));
 
+        const prevMembersById = new Map(prevMembers.map(member => [member.user_id, member]));
+        const nextMembersById = new Map(normalizedMembers.map(member => [member.user_id, member]));
+
+        const membersToAdd = normalizedMembers.filter(member => !prevMembersById.has(member.user_id))
+            .map(member => ({ user_id: member.user_id, role_id: member.role_id }));
+
+        const membersToUpdate = normalizedMembers
+            .filter(member => prevMembersById.has(member.user_id))
+            .map(member => {
+                const prev = prevMembersById.get(member.user_id);
+                return {
+                    user_id: member.user_id,
+                    role_id: member.role_id,
+                    prev_role_id: prev.role_id
+                };
+            })
+            .filter(member => member.role_id !== member.prev_role_id)
+            .map(member => ({ user_id: member.user_id, role_id: member.role_id }));
+
+        const membersToDelete = prevMembers.filter(member => !nextMembersById.has(member.user_id));
+
         await Promise.all(columnsToAdd.map(column => addColumn(boardId, column)));
         await Promise.all(columnsToUpdate.map(column => updateColumn(column)));
         await Promise.all(columnsToDelete.map(column => deleteColumn(column)));
@@ -576,6 +722,43 @@ async function boardSettingsDialogClosed(args) {
         await Promise.all(tagsToAdd.map(tag => addTag(boardId, tag)));
         await Promise.all(tagsToUpdate.map(tag => updateTag(tag.id, { title: tag.title })));
         await Promise.all(tagsToDelete.map(tag => deleteTag(tag.id)));
+
+        // Ordered member operations to avoid transient "last owner" conflicts
+        const ownerRoleId = (CURRENT_DATA.roles || []).find(r => (r.name || "").toLowerCase() === "owner")?.id || null;
+        const isOwner = (roleId) => ownerRoleId && roleId === ownerRoleId;
+
+        const addsOwner = membersToAdd.filter(m => isOwner(m.role_id));
+        const addsOther = membersToAdd.filter(m => !isOwner(m.role_id));
+        const updatesToOwner = membersToUpdate.filter(m => isOwner(m.role_id) && !isOwner(m.prev_role_id));
+        const updatesFromOwner = membersToUpdate.filter(m => !isOwner(m.role_id) && isOwner(m.prev_role_id));
+        const updatesOther = membersToUpdate.filter(m => {
+            const fromOwner = isOwner(m.prev_role_id);
+            const toOwner = isOwner(m.role_id);
+            return fromOwner === toOwner; // no owner status change
+        });
+        const deletesOwner = membersToDelete.filter(m => isOwner(m.role_id));
+        const deletesOther = membersToDelete.filter(m => !isOwner(m.role_id));
+
+        const runSequential = async (ops, fn) => {
+            for (const item of ops) {
+                await fn(item);
+            }
+        };
+
+        if (ownerRoleId) {
+            await runSequential(addsOwner, (m) => addBoardMember(boardId, m));
+            await runSequential(addsOther, (m) => addBoardMember(boardId, m));
+            await runSequential(updatesToOwner, (m) => updateBoardMember(boardId, m.user_id, { role_id: m.role_id }));
+            await runSequential(updatesOther, (m) => updateBoardMember(boardId, m.user_id, { role_id: m.role_id }));
+            await runSequential(updatesFromOwner, (m) => updateBoardMember(boardId, m.user_id, { role_id: m.role_id }));
+            await runSequential(deletesOther, (m) => deleteBoardMember(boardId, m.user_id));
+            await runSequential(deletesOwner, (m) => deleteBoardMember(boardId, m.user_id));
+        } else {
+            // Fallback order without owner awareness
+            await runSequential(membersToAdd, (m) => addBoardMember(boardId, m));
+            await runSequential(membersToUpdate, (m) => updateBoardMember(boardId, m.user_id, { role_id: m.role_id }));
+            await runSequential(membersToDelete, (m) => deleteBoardMember(boardId, m.user_id));
+        }
 
         await refreshBoardData();
     } catch (error) {
@@ -619,21 +802,31 @@ async function columnDialogClosed(args) {
     return true;
 }
 
-async function loadBoardUsers(boardId) {
+async function loadBoardMembers(boardId) {
     if (!boardId) {
-        CURRENT_DATA.boardUsers = [];
+        CURRENT_DATA.boardMembers = [];
         return [];
     }
 
     try {
-        const users = await getBoardUsers(boardId);
-        CURRENT_DATA.boardUsers = Array.isArray(users) ? users : [];
+        // fetch members (ids + role) and resolve usernames from the cached users list
+        const members = await getBoardMembers(boardId);
+        CURRENT_DATA.boardMembers = Array.isArray(members)
+            ? members.map(member => {
+                const user_id = member.user_id || member.id;
+                const resolvedUser = CURRENT_DATA.allUsers.find(u => u.id === user_id);
+                return {
+                    user_id,
+                    role_id: member.role_id,
+                    username: resolvedUser?.username ?? null
+                };
+            })
+            : [];
     } catch (error) {
         logger.error(error.message, error);
-        CURRENT_DATA.boardUsers = [];
+        CURRENT_DATA.boardMembers = [];
     }
-
-    return CURRENT_DATA.boardUsers;
+    return CURRENT_DATA.boardMembers;
 }
 
 async function loadBoards() {
@@ -650,6 +843,7 @@ async function loadBoards() {
         localStorage.setItem(BOARD_CACHE_KEY, selectedId);
     } else {
         localStorage.removeItem(BOARD_CACHE_KEY);
+        setNoBoardState();
     }
 
     return selectedId;
@@ -668,6 +862,23 @@ async function loadBoards() {
     // }
 }
 
+function setNoBoardState() {
+    boardSelect.style.display = "none";
+    kanban.destroy();
+    emptyState.style.display = "block";
+    if (addBoardBtn) {
+        addBoardBtn.style.display = "inline-block";
+    }
+    CURRENT_DATA.columns = [];
+    CURRENT_DATA.tags = [];
+    CURRENT_DATA.boardMembers = [];
+}
+
+function setHasBoardState() {
+    boardSelect.style.display = "inline-block";
+    emptyState.style.display = "none";
+}
+
 function normalizeTagIds(tags) {
     if (!Array.isArray(tags)) {
         return [];
@@ -683,23 +894,32 @@ function normalizeTaskPayload(task) {
     };
 }
 
-async function loadTags() {
-    const boardSelected = boardSelect.value;
-    if (!boardSelected) {
+async function loadTags(boardId) {
+    if (!boardId) {
         CURRENT_DATA.tags = [];
         kanban.tags = [];
         return [];
     }
-    const tags = await getTags(boardSelected);
+    const tags = await getTags(boardId);
     CURRENT_DATA.tags = tags;
     kanban.tags = tags;
     return tags;
 }
 
-async function refreshBoardData() {
-    await loadBoardUsers(boardSelect.value);
-    await loadTags();
+async function refreshBoardData(boardId = boardSelect.value) {
+    await Promise.all([loadCurrentUser(boardId), loadUsers()]);
+    if (!boardId) {
+        setNoBoardState();
+        updateActionVisibility();
+        return;
+    }
+    await loadRoles(boardId);
+    await loadBoardMembers(boardId);
+    await loadTags(boardId);
     await loadColumnsWithTasks();
+
+    setHasBoardState();
+    updateActionVisibility();
 }
 
 function validateBoardDraft(data) {

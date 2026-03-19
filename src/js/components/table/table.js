@@ -10,6 +10,9 @@ export class Table {
     const container = document.createElement("div");
     container.classList.add("dialog-table");
 
+    const scroll = document.createElement("div");
+    scroll.classList.add("dialog-table-scroll");
+
     const table = document.createElement("table");
     const thead = document.createElement("thead");
     const headerRow = document.createElement("tr");
@@ -30,7 +33,8 @@ export class Table {
     const tbody = document.createElement("tbody");
     table.appendChild(tbody);
 
-    container.appendChild(table);
+    scroll.appendChild(table);
+    container.appendChild(scroll);
 
     const addRowBtn = document.createElement("button");
     addRowBtn.type = "button";
@@ -46,16 +50,36 @@ export class Table {
 
         this.columns.forEach(column => {
           const td = document.createElement("td");
-          const input = document.createElement("input");
-          input.type = column.type || "text";
-          input.value = row[column.key] ?? "";
+          const type = column.type || "text";
+          let input;
+          if (type === "select") {
+            input = document.createElement("select");
+            const options = typeof column.options === "function" ? column.options(row) : (column.options || []);
+            options.forEach(opt => {
+              const option = document.createElement("option");
+              option.value = opt.value;
+              option.textContent = opt.label;
+              input.appendChild(option);
+            });
+            input.value = row[column.key] ?? "";
+            input.addEventListener("change", (event) => {
+              row[column.key] = event.target.value;
+            });
+          } else {
+            input = document.createElement("input");
+            input.type = type;
+            input.value = row[column.key] ?? "";
+            input.addEventListener("input", (event) => {
+              row[column.key] = event.target.value;
+            });
+          }
           input.dataset.colKey = column.key;
+          if (column.readOnly && row.id) {
+            input.disabled = true;
+          }
           if (column.required) {
             input.required = true;
           }
-          input.addEventListener("input", (event) => {
-            row[column.key] = event.target.value;
-          });
           td.appendChild(input);
           tr.appendChild(td);
         });
@@ -84,6 +108,14 @@ export class Table {
     });
 
     renderBody();
+
+    // set scroll max height based on configured visible rows (default 3)
+    const maxVisible = this.field.maxVisibleRows ?? 3;
+    // rough row height (~56px) + header (~52px)
+    const estimatedRowHeight = 56;
+    const estimatedHeaderHeight = 52;
+    scroll.style.maxHeight = `${estimatedHeaderHeight + maxVisible * estimatedRowHeight}px`;
+
     this.root = container;
     return container;
   }
@@ -105,7 +137,7 @@ export class Table {
         if (!value) {
           hasErrors = true;
           const input = this.root.querySelector(
-            `tr[data-row-id="${row.__rowId}"] input[data-col-key="${column.key}"]`
+            `tr[data-row-id="${row.__rowId}"] [data-col-key="${column.key}"]`
           );
           if (input) {
             input.classList.add("field-error");
@@ -135,7 +167,7 @@ export class Table {
     const cleaned = {};
     this.columns.forEach(column => {
       const raw = row[column.key];
-      cleaned[column.key] = this.#normalizeText(raw);
+      cleaned[column.key] = column.type === "select" ? (raw ?? null) : this.#normalizeText(raw);
     });
     if (row.id) {
       cleaned.id = row.id;
