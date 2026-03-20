@@ -247,16 +247,6 @@ function buildDialogConfig(type, isEdit) {
     };
 }
 
-const PRIORITY_CLASSES = {
-    '87303282-a1d8-48e1-84ac-6a5739a9737c': "card-priority-normal",
-    // 1: "card-priority-low",
-    // 2: "card-priority-medium",
-    // 3: "card-priority-high",
-    // 4: "card-priority-top"
-};
-
-const DEFAULT_PRIORITY_CLASS = 'card-priority-normal';
-
 (async () => {
     let loaderId;
     try {
@@ -348,17 +338,9 @@ async function initializeKanban() {
     const defaultPriority = priorities?.[0] ?? null;
     newTask.priority_id = defaultPriority?.id ?? null;
     newTask.priority = null;
-    const prioritesExtended = extendPrioritiesWithClass(priorities);
-    kanban.priorites = prioritesExtended;
+    kanban.priorites = priorities;
 
     await refreshBoardData();
-}
-
-function extendPrioritiesWithClass(priorities) {
-    return priorities.map(i => ({
-        ...i,
-        class: PRIORITY_CLASSES[i.id] ?? DEFAULT_PRIORITY_CLASS
-    }));
 }
 
 async function loadRoles(boardId) {

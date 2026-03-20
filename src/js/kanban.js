@@ -148,16 +148,20 @@ export class Kanban {
 
         const priorityEl = element.querySelector(".card-priority");
         const priorities = this.priorites || [];
-        const allPriorityClasses = priorities.map(p => p.class);
-
-        priorityEl.classList.remove(...allPriorityClasses);
 
         const priorityId = item?.priority?.id ?? item?.priority_id ?? item?.priority ?? null;
         const priority = priorities.find(i => i.id == priorityId);
         const priorityTitle = priority?.title ?? item?.priority?.title ?? "N/A";
         priorityEl.textContent = `Priority: ${priorityTitle}`;
-        if (priority?.class) {
-            priorityEl.classList.add(priority.class);
+
+        // apply color if provided
+        const color = priority?.color;
+        if (color) {
+            priorityEl.style.backgroundColor = color;
+            priorityEl.style.color = this.#getReadableTextColor(color);
+        } else {
+            priorityEl.style.backgroundColor = "#e0e0e0";
+            priorityEl.style.color = "#333";
         }
 
         const currentGroup = element.dataset.groupValue;
@@ -172,6 +176,32 @@ export class Kanban {
             }
 
             element.dataset.groupValue = newGroup;
+        }
+    }
+
+    #getReadableTextColor(bgColor) {
+        try {
+            let r, g, b;
+            if (bgColor.startsWith("#")) {
+                const hex = bgColor.slice(1);
+                const norm = hex.length === 3
+                    ? hex.split("").map(c => c + c).join("")
+                    : hex.padEnd(6, "0");
+                r = parseInt(norm.slice(0, 2), 16);
+                g = parseInt(norm.slice(2, 4), 16);
+                b = parseInt(norm.slice(4, 6), 16);
+            } else if (bgColor.startsWith("rgb")) {
+                const nums = bgColor.match(/\d+/g).map(Number);
+                [r, g, b] = nums;
+            } else {
+                // fallback if color parsing fails
+                return "#fff";
+            }
+            // luminance
+            const luminance = (0.299 * r + 0.587 * g + 0.114 * b) / 255;
+            return luminance > 0.6 ? "#000" : "#fff";
+        } catch {
+            return "#fff";
         }
     }
 
