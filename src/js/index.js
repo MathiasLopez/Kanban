@@ -471,8 +471,16 @@ async function cardDialogClosed(args) {
                 return false;
             }
             if (args.data.id) {
-                await updateTask(normalizeTaskPayload(args.data))
-                kanban.updateCard(args.data);
+                const payload = normalizeTaskPayload(args.data);
+                const response = await updateTask(payload);
+                const priority_id = payload.priority_id ?? response?.priority_id ?? args.data.priority_id ?? args.data.priority;
+                const priorityObj = (CURRENT_DATA.priorities || []).find(p => p.id === priority_id) ?? response?.priority ?? args.data.priority;
+                kanban.updateCard({
+                    ...args.data,
+                    ...response,
+                    priority_id,
+                    priority: priorityObj
+                });
             } else {
                 const targetColumnId = args.data.column_id || CURRENT_DATA.columns?.[0]?.id;
                 if (!targetColumnId) {
