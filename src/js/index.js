@@ -60,6 +60,7 @@ const boardEditBtn = document.getElementById("board-edit-btn");
 const boardSettingsBtn = document.getElementById("board-menu-btn");
 const emptyState = document.getElementById("empty-state");
 const emptyCreateBtn = document.getElementById("empty-create-btn");
+const userInfo = document.getElementById("user-info");
 const newTask = {
     title: "",
     description: "",
@@ -378,6 +379,7 @@ async function loadCurrentUser(boardId) {
         logger.error("Failed to load current user", error);
         CURRENT_DATA.currentUser = null;
     }
+    updateUserDisplay();
     return CURRENT_DATA.currentUser;
 }
 
@@ -416,6 +418,7 @@ function showAccess() {
     logoutBtn.style.display = "none";
     loginBtn.style.display = "inline-block";
     removeKanban();
+    hideUserDisplay();
 }
 
 addBoardBtn.onclick = async () => {
@@ -448,6 +451,23 @@ function onCardClick(args) {
 function handleColumnClick(column) {
     logger.debug("onColumnClick", column);
     dialog.openDialog({ data: { ...column }, config: buildDialogConfig(DIALOG_TYPES.COLUMN, true) });
+}
+
+function hideUserDisplay() {
+    if (!userInfo) return;
+    userInfo.style.display = "none";
+    userInfo.textContent = "";
+}
+
+function updateUserDisplay() {
+    if (!userInfo) return;
+    const username = CURRENT_DATA.currentUser?.username;
+    if (!username) {
+        hideUserDisplay();
+        return;
+    }
+    userInfo.textContent = `Signed in as ${username}`;
+    userInfo.style.display = "inline-flex";
 }
 
 async function handleCardMoved(args) {
