@@ -466,10 +466,6 @@ async function cardDialogClosed(args) {
                 alert("Task title is required.");
                 return false;
             }
-            if (isTaskTitleDuplicate(args.data.title, args.data.id)) {
-                alert("Task title must be unique (case-insensitive).");
-                return false;
-            }
             if (args.data.id) {
                 const payload = normalizeTaskPayload(args.data);
                 const response = await updateTask(payload);
@@ -511,10 +507,7 @@ async function boardDialogClosed(args) {
                     alert("Board title is required.");
                     return false;
                 }
-                if (isBoardTitleDuplicate(normalized.title, normalized.id)) {
-                    alert("Board title must be unique (case-insensitive).");
-                    return false;
-                }
+
                 await updateBoard({
                     id: normalized.id,
                     title: normalized.title,
@@ -529,10 +522,6 @@ async function boardDialogClosed(args) {
                 const normalized = normalizeBoardDraft(args.data);
                 if (!normalized.title) {
                     alert("Board title is required.");
-                    return false;
-                }
-                if (isBoardTitleDuplicate(normalized.title)) {
-                    alert("Board title must be unique (case-insensitive).");
                     return false;
                 }
                 const validation = validateBoardDraft(normalized);
@@ -610,20 +599,6 @@ async function boardSettingsDialogClosed(args) {
         const memberIdSet = new Set(memberIds);
         if (memberIdSet.size !== memberIds.length) {
             alert("Members must be unique per user.");
-            return false;
-        }
-
-        const columnTitles = normalizedColumns.map(item => item.title).filter(Boolean);
-        const columnTitleSet = new Set(columnTitles.map(title => title.toLowerCase()));
-        if (columnTitleSet.size !== columnTitles.length) {
-            alert("Column titles must be unique (case-insensitive).");
-            return false;
-        }
-
-        const tagTitles = normalizedTags.map(item => item.title).filter(Boolean);
-        const tagTitleSet = new Set(tagTitles.map(title => title.toLowerCase()));
-        if (tagTitleSet.size !== tagTitles.length) {
-            alert("Tag titles must be unique (case-insensitive).");
             return false;
         }
 
@@ -764,10 +739,6 @@ async function columnDialogClosed(args) {
             args.data.description = normalizeText(args.data.description);
             if (!args.data.title) {
                 alert("Column title is required.");
-                return false;
-            }
-            if (isColumnTitleDuplicate(args.data.title, args.data.id)) {
-                alert("Column title must be unique (case-insensitive).");
                 return false;
             }
             if (args.data.id) {
@@ -919,13 +890,6 @@ function validateBoardDraft(data) {
     const columnTitles = columns.map(item => item?.title).filter(Boolean);
     const tagTitles = tags.map(item => item?.title).filter(Boolean);
 
-    if (columns.some(item => !item?.title)) {
-        return { ok: false, message: "Columns require a non-empty title." };
-    }
-    if (tags.some(item => !item?.title)) {
-        return { ok: false, message: "Tags require a non-empty title." };
-    }
-
     const columnTitleSet = new Set(columnTitles.map(title => title.toLowerCase()));
     if (columnTitleSet.size !== columnTitles.length) {
         return { ok: false, message: "Column titles must be unique (case-insensitive)." };
@@ -968,36 +932,6 @@ function normalizeBoardDraft(data) {
         title: normalizeText(tag?.title)
     }));
     return data;
-}
-
-function isBoardTitleDuplicate(title, excludeId = null) {
-    if (!title) return false;
-    const normalized = title.toLowerCase();
-    return (CURRENT_DATA.boards || []).some(board => {
-        if (!board?.title) return false;
-        if (excludeId && board.id === excludeId) return false;
-        return board.title.toLowerCase() === normalized;
-    });
-}
-
-function isColumnTitleDuplicate(title, excludeId = null) {
-    if (!title) return false;
-    const normalized = title.toLowerCase();
-    return (CURRENT_DATA.columns || []).some(column => {
-        if (!column?.title) return false;
-        if (excludeId && column.id === excludeId) return false;
-        return column.title.toLowerCase() === normalized;
-    });
-}
-
-function isTaskTitleDuplicate(title, excludeId = null) {
-    if (!title) return false;
-    const normalized = title.toLowerCase();
-    return (kanban.cards || []).some(card => {
-        if (!card?.title) return false;
-        if (excludeId && card.id === excludeId) return false;
-        return card.title.toLowerCase() === normalized;
-    });
 }
 
 function resolveSelectedBoardId(boards, cachedId) {
