@@ -76,6 +76,15 @@ const newBoard = {
     tags: []
 };
 
+async function refreshBoardDataWithLoader(boardId = boardSelect.value) {
+    const loaderId = showLoader();
+    try {
+        await refreshBoardData(boardId);
+    } finally {
+        hideLoader(loaderId);
+    }
+}
+
 function buildDialogConfig(type, isEdit) {
     if (type === DIALOG_TYPES.BOARD) {
         const fields = [
@@ -266,7 +275,7 @@ function buildDialogConfig(type, isEdit) {
         boardSelect.addEventListener("change", async e => {
             const nextBoardId = e.target.value;
             localStorage.setItem(BOARD_CACHE_KEY, nextBoardId);
-            await refreshBoardData();
+            await refreshBoardDataWithLoader();
         });
 
         boardEditBtn.addEventListener("click", async () => {
@@ -458,7 +467,10 @@ async function handleCardMoved(args) {
 }
 
 async function cardDialogClosed(args) {
+    let loaderId;
+    let success = true;
     try {
+        loaderId = showLoader();
         logger.debug("cardDialogClosed", args);
         if (args.action === "save") {
             args.data.title = normalizeText(args.data?.title);
@@ -493,13 +505,20 @@ async function cardDialogClosed(args) {
         }
     } catch (error) {
         logger.error(error.message, error);
-        return false;
+        alert(error?.message || "Failed to save the task. Please try again.");
+        success = false;
+    } finally {
+        hideLoader(loaderId);
     }
-    return true;
+    return success;
 }
 
 async function boardDialogClosed(args) {
+    let loaderId;
+    let success = true;
     try {
+        loaderId = showLoader();
+
         if (args.action === "save") {
             if (args.data.id) {
                 const normalized = normalizeBoardDraft(args.data);
@@ -536,7 +555,7 @@ async function boardDialogClosed(args) {
                     boardSelect.value = response.id;
                     kanban.destroy();
                 }
-                await refreshBoardData();
+                await refreshBoardDataWithLoader();
             }
         } else if (args.action === "delete") {
             if (confirm("Are you sure you want to delete the board? All tasks associated with it will be deleted.")) {
@@ -544,17 +563,24 @@ async function boardDialogClosed(args) {
                 const option = boardSelect.querySelector(`option[value="${args.data.id}"]`);
                 option.remove();
                 CURRENT_DATA.boards = (CURRENT_DATA.boards || []).filter(board => board.id !== args.data.id);
-                await refreshBoardData();
+                await refreshBoardDataWithLoader();
             }
         }
     } catch (error) {
         logger.error(error.message, error);
+        alert(error?.message || "Failed to save the board. Please try again.");
+        success = false;
+    } finally {
+        hideLoader(loaderId);
     }
-    return true;
+    return success;
 }
 
 async function boardSettingsDialogClosed(args) {
+    let loaderId;
+    let success = true;
     try {
+        loaderId = showLoader();
         if (args.action !== "save") {
             return true;
         }
@@ -728,12 +754,19 @@ async function boardSettingsDialogClosed(args) {
         await refreshBoardData();
     } catch (error) {
         logger.error(error.message, error);
+        alert(error?.message || "Failed to save board settings. Please try again.");
+        success = false;
+    } finally {
+        hideLoader(loaderId);
     }
-    return true;
+    return success;
 }
 
 async function columnDialogClosed(args) {
+    let loaderId;
+    let success = true;
     try {
+        loaderId = showLoader();
         if (args.action === "save") {
             args.data.title = normalizeText(args.data.title);
             args.data.description = normalizeText(args.data.description);
@@ -759,8 +792,12 @@ async function columnDialogClosed(args) {
         }
     } catch (error) {
         logger.error(error.message, error);
+        alert(error?.message || "Failed to save the column. Please try again.");
+        success = false;
+    } finally {
+        hideLoader(loaderId);
     }
-    return true;
+    return success;
 }
 
 async function loadBoardMembers(boardId) {

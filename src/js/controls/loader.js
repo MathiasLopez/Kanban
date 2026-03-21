@@ -1,6 +1,13 @@
 let loaderElement = null;
 let loaderRefs = new Set();
 
+function resolveLoaderHost() {
+    // If a dialog is open, it lives in the top layer and sits above other elements.
+    // Append the loader to the open dialog so it remains visible; otherwise use body.
+    const openDialog = document.querySelector("dialog[open]");
+    return openDialog || document.body;
+}
+
 function createLoader() {
     const div = document.createElement("div");
     div.id = "global-loader";
@@ -41,12 +48,18 @@ function createLoader() {
 export function showLoader() {
     const id = crypto.randomUUID();
     loaderRefs.add(id);
-    if (loaderElement)
-        return;
+    if (loaderElement) {
+        const host = resolveLoaderHost();
+        if (loaderElement.parentElement !== host) {
+            host.appendChild(loaderElement);
+        }
+        return id;
+    }
 
     loaderElement = createLoader();
 
-    document.body.appendChild(loaderElement);
+    const host = resolveLoaderHost();
+    host.appendChild(loaderElement);
     return id;
 }
 
