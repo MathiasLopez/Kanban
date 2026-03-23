@@ -99,10 +99,6 @@ export function getBoards() {
 	return apiFetch("/boards/");
 }
 
-export function getBoard(boardId) {
-	return apiFetch(`/boards/${boardId}`);
-}
-
 export function addBoard(board) {
 	return apiFetch('/boards/', {
 		method: "POST",

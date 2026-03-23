@@ -64,9 +64,9 @@ export class Dialog {
     }
 
     const deleteBtn = this.dialog.querySelector("#dialog-btn-delete");
-    const allowDelete = this.currentConfig.allowDelete ?? true;
+    const allowDelete = this.currentConfig.allowDelete ?? false;
     if (deleteBtn) {
-      deleteBtn.style.display = allowDelete && this.currentData?.id ? "inline-block" : "none";
+      deleteBtn.style.display = allowDelete ? "inline-block" : "none";
     }
 
     const fieldContainer = this.dialog.querySelector("#dialog-dynamic-fields");
