@@ -1,4 +1,4 @@
-import { getBoards, addBoard, updateBoard, deleteBoard, getBoardColumnsWithTasks, addTask, updateTask, deleteTask, addColumn, updateColumn, deleteColumn, getBoardMembers, getPrioritis, getTags, getRoles, getUsers, getCurrentUser } from "./api.js";
+import { getBoards, addBoard, updateBoard, deleteBoard, getBoardColumnsWithTasks, addTask, updateTask, deleteTask, getBoardMembers, getPrioritis, getTags, getRoles, getUsers, getCurrentUser } from "./api.js";
 import { redirectToLogin, refresh, logout } from "./auth.js";
 import { Kanban } from "./kanban.js";
 import { Dialog } from "./Dialog.js";
@@ -15,14 +15,12 @@ const kanban = new Kanban(
         groupBy: 'column_id',
         columns: [],
         cardClick: onCardClick,
-        onCardMoved: handleCardMoved,
-        onColumnClick: handleColumnClick
+        onCardMoved: handleCardMoved
     });
 
 const DIALOG_TYPES = {
     BOARD_SETTINGS: "board_settings",
-    TASK: "task",
-    COLUMN: "column"
+    TASK: "task"
 };
 
 const ROLE_PERMISSION_SCOPES = {
@@ -35,8 +33,6 @@ const dialog = new Dialog({
     onClose: async (args) => {
         if (args.type === DIALOG_TYPES.BOARD_SETTINGS) {
             return await boardSettingsDialogClosed(args);
-        } else if (args.type === DIALOG_TYPES.COLUMN) {
-            return await columnDialogClosed(args);
         } else {
             return await cardDialogClosed(args);
         }
@@ -64,7 +60,6 @@ const BOARD_CACHE_KEY = "selectedBoardId";
 const logoutBtn = document.getElementById("logoutBtn");
 const addBoardBtn = document.getElementById("addBoardBtn");
 const addCardBtn = document.getElementById("addCardBtn");
-const addColumnBtn = document.getElementById("addColumnBtn");
 const boardSelect = document.getElementById("board-select");
 const boardSettingsBtn = document.getElementById("board-menu-btn");
 const emptyState = document.getElementById("empty-state");
@@ -175,20 +170,6 @@ function buildDialogConfig(type, isEdit) {
             title: isEdit ? "Board settings" : "New board",
             allowDelete: !isCreateBoardMode && hasPermission("board.update"),
             fields
-        };
-    }
-
-    if (type === DIALOG_TYPES.COLUMN) {
-        const canManageColumns = hasPermission("board.update");
-        return {
-            type: DIALOG_TYPES.COLUMN,
-            title: isEdit ? "Edit column" : "New column",
-            allowSave: canManageColumns,
-            allowDelete: isEdit && canManageColumns,
-            fields: [
-                { id: "title", label: "Title", type: "text", required: true },
-                { id: "description", label: "Description", type: "textarea" }
-            ]
         };
     }
 
@@ -340,7 +321,6 @@ async function initializeKanban() {
 
     addBoardBtn.style.display = canCreateBoard() ? "inline-block" : "none";
     addCardBtn.style.display = "inline-block";
-    addColumnBtn.style.display = "inline-block";
     boardSelect.style.display = "inline-block";
     boardSettingsBtn.style.display = "inline-block";
 
@@ -424,7 +404,6 @@ function updateActionVisibility() {
     const showSettings = hasBoard && canShowBoardSettings();
     boardSettingsBtn.style.display = showSettings ? "inline-block" : "none";
     addCardBtn.style.display = hasBoard && hasPermission("task.create") ? "inline-block" : "none";
-    addColumnBtn.style.display = hasBoard && hasPermission("board.update") ? "inline-block" : "none";
     addBoardBtn.style.display = canCreateBoard() ? "inline-block" : "none";
     emptyCreateBtn.style.display = canCreateBoard() ? "inline-block" : "none";
 }
@@ -438,7 +417,6 @@ function canShowBoardSettings() {
 function removeKanban() {
     addBoardBtn.style.display = "none";
     addCardBtn.style.display = "none";
-    addColumnBtn.style.display = "none";
     boardSelect.style.display = "none"
     boardSettingsBtn.style.display = "none";
     emptyState.style.display = "none";
@@ -468,20 +446,10 @@ addCardBtn.onclick = async () => {
     dialog.openDialog({ data: { ...newTask }, config: buildDialogConfig(DIALOG_TYPES.TASK, false) });
 };
 
-addColumnBtn.onclick = async () => {
-    logger.debug("addColumnBtn clicked");
-    dialog.openDialog({ data: { title: "", description: "" }, config: buildDialogConfig(DIALOG_TYPES.COLUMN, false) });
-};
-
 function onCardClick(args) {
     logger.debug("onCardClicked", args);
     const tagIds = normalizeTagIds(args?.tags);
     dialog.openDialog({ data: { ...args, tags: tagIds }, config: buildDialogConfig(DIALOG_TYPES.TASK, true) });
-}
-
-function handleColumnClick(column) {
-    logger.debug("onColumnClick", column);
-    dialog.openDialog({ data: { ...column }, config: buildDialogConfig(DIALOG_TYPES.COLUMN, true) });
 }
 
 function hideUserDisplay() {
@@ -755,44 +723,6 @@ async function boardSettingsDialogClosed(args) {
 function isTagInUseError(errorMessage) {
     const regex = /Error 409:\s*-\s*\{"detail":"Tag '.*' is assigned to tasks; remove those associations before deleting it"\}/;
     return regex.test(errorMessage);
-}
-
-async function columnDialogClosed(args) {
-    let loaderId;
-    let success = true;
-    try {
-        loaderId = showLoader();
-        if (args.action === "save") {
-            args.data.title = normalizeText(args.data.title);
-            args.data.description = normalizeText(args.data.description);
-            if (!args.data.title) {
-                alert("Column title is required.");
-                return false;
-            }
-            if (args.data.id) {
-                await updateColumn(args.data);
-            } else {
-                const boardSelected = boardSelect.value;
-                if (!boardSelected) {
-                    throw new Error("No board selected to create the column.");
-                }
-                await addColumn(boardSelected, args.data);
-            }
-            await loadColumnsWithTasks();
-        } else if (args.action === "delete") {
-            if (confirm("Are you sure you want to delete the column? All tasks associated with it will be deleted.")) {
-                await deleteColumn(args.data);
-                await loadColumnsWithTasks();
-            }
-        }
-    } catch (error) {
-        logger.error(error.message, error);
-        alert(error?.message || "Failed to save the column. Please try again.");
-        success = false;
-    } finally {
-        hideLoader(loaderId);
-    }
-    return success;
 }
 
 async function loadBoardMembers(boardId) {
