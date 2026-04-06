@@ -106,8 +106,9 @@ export function addBoard(board) {
 	});
 }
 
-export function updateBoard(board) {
-	return apiFetch(`/boards/${board.id}`, {
+export function updateBoard(board, { force = false } = {}) {
+	const query = force ? "?force=true" : "";
+	return apiFetch(`/boards/${board.id}${query}`, {
 		method: "PUT",
 		body: JSON.stringify(board)
 	});
@@ -156,14 +157,13 @@ export function getUsers() {
 	return apiFetch("/users/");
 }
 
-export function getCurrentUser(boardId = null) {
-	const query = boardId ? `?board_id=${boardId}` : "";
-	return apiFetch(`/users/me${query}`);
+export function getCurrentUser() {
+	return apiFetch("/users/me");
 }
 
 // Roles
-export function getRoles(boardId) {
-	return apiFetch(`/roles/?board_id=${boardId}`);
+export function getRoles() {
+	return apiFetch("/roles/");
 }
 
 // Board members

@@ -43,12 +43,18 @@ export class Dialog {
   }
 
   async close(action, data = null) {
-    let shouldClose = true;
     if (!this.onClose) {
       this.dialog.close();
+      return;
     }
 
-    const result = await this.onClose({ action, data, type: this.currentConfig?.type });
+    const result = await this.onClose({
+      action,
+      data,
+      type: this.currentConfig?.type,
+      config: this.currentConfig
+    });
+
     if (result !== false) {
       this.dialog.close();
     }
@@ -67,6 +73,13 @@ export class Dialog {
     const allowDelete = this.currentConfig.allowDelete ?? false;
     if (deleteBtn) {
       deleteBtn.style.display = allowDelete ? "inline-block" : "none";
+    }
+
+    const saveBtn = this.dialog.querySelector("#dialog-btn-save");
+    const allowSave = this.currentConfig.allowSave ?? true;
+    if (saveBtn) {
+      saveBtn.style.display = allowSave ? "inline-block" : "none";
+      saveBtn.disabled = !allowSave;
     }
 
     const fieldContainer = this.dialog.querySelector("#dialog-dynamic-fields");

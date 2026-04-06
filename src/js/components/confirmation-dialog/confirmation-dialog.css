@@ -1,0 +1,182 @@
+/* ============================================================
+   ConfirmationDialog — styles
+   ============================================================ */
+
+/* Overlay backdrop */
+.confirmation-dialog::backdrop {
+  background: rgba(0, 0, 0, 0.45);
+  backdrop-filter: blur(3px);
+  -webkit-backdrop-filter: blur(3px);
+}
+
+/* Main container */
+.confirmation-dialog {
+  border: none;
+  border-radius: 12px;
+  padding: 0;
+  width: 380px;
+  max-width: 92vw;
+  box-shadow:
+    0 2px 4px rgba(0, 0, 0, 0.04),
+    0 8px 24px rgba(0, 0, 0, 0.12),
+    0 24px 48px rgba(0, 0, 0, 0.08);
+  background: #ffffff;
+  overflow: hidden;
+
+  /* Enter animation */
+  animation: dialog-enter 0.22s cubic-bezier(0.34, 1.3, 0.64, 1) both;
+}
+
+@keyframes dialog-enter {
+  from {
+    opacity: 0;
+    transform: scale(0.94) translateY(8px);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1) translateY(0);
+  }
+}
+
+/* Exit animation — requires the has-close-animation class on the dialog element */
+.confirmation-dialog.has-close-animation[open] {
+  animation: dialog-exit 0.18s ease-in forwards;
+}
+
+@keyframes dialog-exit {
+  from {
+    opacity: 1;
+    transform: scale(1) translateY(0);
+  }
+  to {
+    opacity: 0;
+    transform: scale(0.96) translateY(4px);
+  }
+}
+
+/* Inner form */
+.confirmation-dialog-form {
+  display: flex;
+  flex-direction: column;
+}
+
+/* Body: title + message */
+.confirmation-dialog-form > :not(menu) {
+  padding: 24px 24px 0;
+}
+
+/* Title */
+.confirmation-dialog-title {
+  margin: 0 0 8px;
+  font-size: 16px;
+  font-weight: 600;
+  line-height: 1.4;
+  color: #111827;
+  letter-spacing: -0.01em;
+}
+
+/* Message */
+.confirmation-dialog-message {
+  margin: 0;
+  font-size: 14px;
+  line-height: 1.6;
+  color: #6b7280;
+  padding-bottom: 20px;
+}
+
+/* Action bar — explicit resets to avoid interference from global styles */
+.confirmation-dialog menu {
+  display: flex;
+  flex-direction: row;
+  flex-wrap: nowrap;
+  justify-content: flex-end;
+  align-items: center;
+  gap: 8px;
+  margin: 0;
+  padding: 16px 24px;
+  list-style: none;
+  border-top: 1px solid #f3f4f6;
+  background: #fafafa;
+}
+
+/* Base button — explicit resets to avoid interference from global styles */
+.confirmation-dialog .btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: auto;
+  min-width: 80px;
+  padding: 8px 16px;
+  border-radius: 7px;
+  font-size: 14px;
+  font-weight: 500;
+  line-height: 1;
+  cursor: pointer;
+  border: 1px solid transparent;
+  box-sizing: border-box;
+  transition:
+    background 0.15s ease,
+    box-shadow 0.15s ease,
+    transform 0.1s ease;
+  white-space: nowrap;
+  user-select: none;
+  flex-shrink: 0;
+}
+
+.confirmation-dialog .btn:active {
+  transform: scale(0.97);
+}
+
+.confirmation-dialog .btn:focus-visible {
+  outline: 2px solid #6366f1;
+  outline-offset: 2px;
+}
+
+/* Cancel button */
+.confirmation-dialog .btn-cancel {
+  background: #ffffff;
+  color: #374151;
+  border-color: #d1d5db;
+}
+
+.confirmation-dialog .btn-cancel:hover {
+  background: #f9fafb;
+  border-color: #9ca3af;
+}
+
+/* Confirm button */
+.confirmation-dialog .btn-confirm {
+  background: #ef4444;
+  color: #ffffff;
+  border-color: transparent;
+  box-shadow: 0 1px 3px rgba(239, 68, 68, 0.3);
+}
+
+.confirmation-dialog .btn-confirm:hover {
+  background: #dc2626;
+  box-shadow: 0 2px 6px rgba(239, 68, 68, 0.4);
+}
+
+/* ── Variant: non-destructive action ──────────────────────── */
+/* Add .is-safe class to the dialog for non-dangerous actions */
+.confirmation-dialog.is-safe .btn-confirm {
+  background: #3b82f6;
+  box-shadow: 0 1px 3px rgba(59, 130, 246, 0.3);
+}
+
+.confirmation-dialog.is-safe .btn-confirm:hover {
+  background: #2563eb;
+  box-shadow: 0 2px 6px rgba(59, 130, 246, 0.4);
+}
+
+/* ── Responsive ───────────────────────────────────────────── */
+@media (max-width: 480px) {
+  .confirmation-dialog menu {
+    flex-direction: column-reverse;
+  }
+
+  .confirmation-dialog .btn {
+    width: 100%;
+    padding: 11px 16px;
+  }
+}
