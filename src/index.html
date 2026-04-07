@@ -41,16 +41,23 @@
     </div>
   </template>
 
-  <dialog id="edit-dialog">
+  <dialog id="edit-dialog" class="app-dialog">
     <form method="dialog" class="dialog-form">
-      <h2 id="dialog-title"></h2>
-      <div id="dialog-dynamic-fields"></div>
+      <header class="dialog-header">
+        <h2 id="dialog-title"></h2>
+      </header>
 
-      <menu>
-        <button id="dialog-btn-delete" class="btn btn-delete" value="cancel">Delete</button>
-        <button id="dialog-btn-cancel" class="btn btn-cancel" value="cancel">Cancel</button>
-        <button id="dialog-btn-save" class="btn btn-save" value="default">Save</button>
-      </menu>
+      <div class="dialog-body">
+        <div id="dialog-dynamic-fields" class="dialog-fields"></div>
+      </div>
+
+      <footer class="dialog-footer">
+        <menu class="dialog-actions">
+          <button id="dialog-btn-delete" class="btn btn-delete" value="cancel">Delete</button>
+          <button id="dialog-btn-cancel" class="btn btn-cancel" value="cancel">Cancel</button>
+          <button id="dialog-btn-save" class="btn btn-save" value="default">Save</button>
+        </menu>
+      </footer>
     </form>
   </dialog>
 
