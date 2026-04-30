@@ -94,6 +94,20 @@ export function deleteTask(task) {
 	});
 }
 
+export function getTaskById(taskId) {
+	return apiFetch(`/tasks/${taskId}`);
+}
+
+export function searchTasks(boardId, query, limit = 20) {
+    if (!boardId) return Promise.resolve([]);
+
+    const params = new URLSearchParams({ boardId });
+    if (query) params.append("q", query);
+    if (limit) params.append("limit", limit);
+
+    return apiFetch(`/tasks/search?${params.toString()}`);
+}
+
 //Boards
 export function getBoards() {
 	return apiFetch("/boards/");

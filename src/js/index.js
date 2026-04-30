@@ -1,4 +1,4 @@
-import { getBoards, addBoard, updateBoard, deleteBoard, getBoardColumnsWithTasks, addTask, updateTask, deleteTask, getBoardMembers, getPrioritis, getTags, getRoles, getUsers, getCurrentUser } from "./api.js";
+import { getBoards, addBoard, updateBoard, deleteBoard, getBoardColumnsWithTasks, addTask, updateTask, deleteTask, getBoardMembers, getPrioritis, getTags, getRoles, getUsers, getCurrentUser, getTaskById, searchTasks } from "./api.js";
 import { redirectToLogin, refresh, logout } from "./auth.js";
 import { Kanban } from "./kanban.js";
 import { Dialog } from "./Dialog.js";
@@ -28,16 +28,10 @@ const ROLE_PERMISSION_SCOPES = {
     BOARD: "board"
 };
 
-const dialog = new Dialog({
-    dialog: document.querySelector("#edit-dialog"),
-    onClose: async (args) => {
-        if (args.type === DIALOG_TYPES.BOARD_SETTINGS) {
-            return await boardSettingsDialogClosed(args);
-        } else {
-            return await cardDialogClosed(args);
-        }
-    }
-})
+function openDialog({ data, config, onClose }) {
+    const dialog = new Dialog({ onClose });
+    dialog.openDialog({ data, config });
+}
 
 const confirmationDialog = new ConfirmationDialog();
 
@@ -88,7 +82,7 @@ function resetForceBoardUpdate() {
     forceBoardUpdate = false;
 }
 
-function buildDialogConfig(type, isEdit) {
+function buildDialogConfig(type, isEdit, data = null) {
     if (type === DIALOG_TYPES.BOARD_SETTINGS) {
         const isCreateBoardMode = hasPermission("board.create", ROLE_PERMISSION_SCOPES.GLOBAL);
         const fields = [];
@@ -215,6 +209,20 @@ function buildDialogConfig(type, isEdit) {
                     label: column.title
                 }))
             },
+            ...(!(data?.subtasks?.length > 0) ? [{
+                id: "parent",
+                label: "Parent task",
+                type: "combobox",
+                valueField: "id",
+                labelField: "title",
+                minChars: 3,
+                allowClear: true,
+                search: async (query) => {
+                    if (!query || query.length < 3) return [];
+                    const results = await searchTasks(boardSelect.value, query, 20);
+                    return results.filter(r => String(r.id) !== String(data?.id));
+                }
+            }] : []),
             {
                 id: "tags",
                 label: "Tags",
@@ -224,7 +232,15 @@ function buildDialogConfig(type, isEdit) {
                     value: tag.id,
                     label: tag.title
                 }))
-            }
+            },
+            ...(data?.subtasks?.length > 0 ? [{
+                id: "subtasks",
+                label: "Subtasks",
+                type: "linklist",
+                items: data.subtasks,
+                labelField: "title",
+                onItemClick: (item) => openTaskDialog(item.id, true)
+            }] : [])
         ]
     };
 }
@@ -262,7 +278,7 @@ function buildDialogConfig(type, isEdit) {
             logger.debug("boardSettingsBtn clicked", boardSelect.value);
             resetForceBoardUpdate();
             let boardMeta = CURRENT_DATA.boards.find(board => board.id === boardSelect.value);
-            dialog.openDialog({
+            openDialog({
                 data: {
                     board_id: boardMeta.id,
                     title: boardMeta.title,
@@ -276,7 +292,8 @@ function buildDialogConfig(type, isEdit) {
                         username: member.username
                     }))
                 },
-                config: buildDialogConfig(DIALOG_TYPES.BOARD_SETTINGS, true)
+                config: buildDialogConfig(DIALOG_TYPES.BOARD_SETTINGS, true),
+                onClose: boardSettingsDialogClosed
             });
         });
 
@@ -432,9 +449,10 @@ function showAccess() {
 
 addBoardBtn.onclick = async () => {
     logger.debug("addBoardBtn clicked");
-    dialog.openDialog({
+    openDialog({
         data: { ...newBoard, members: buildDefaultMembersForCreation() },
-        config: buildDialogConfig(DIALOG_TYPES.BOARD_SETTINGS, false)
+        config: buildDialogConfig(DIALOG_TYPES.BOARD_SETTINGS, false),
+        onClose: boardSettingsDialogClosed
     });
 };
 
@@ -443,13 +461,43 @@ emptyCreateBtn.onclick = () => addBoardBtn.onclick();
 addCardBtn.onclick = async () => {
     logger.debug("addCardBtn clicked");
     newTask.column_id = CURRENT_DATA.columns?.[0]?.id ?? null;
-    dialog.openDialog({ data: { ...newTask }, config: buildDialogConfig(DIALOG_TYPES.TASK, false) });
+    openDialog({
+        data: { ...newTask },
+        config: buildDialogConfig(DIALOG_TYPES.TASK, false, { ...newTask }),
+        onClose: cardDialogClosed
+    });
 };
 
 function onCardClick(args) {
     logger.debug("onCardClicked", args);
-    const tagIds = normalizeTagIds(args?.tags);
-    dialog.openDialog({ data: { ...args, tags: tagIds }, config: buildDialogConfig(DIALOG_TYPES.TASK, true) });
+    openTaskDialog(args);
+}
+
+async function openTaskDialog(taskInput, viewOnly = false) {
+    try {
+        const taskData = await resolveTask(taskInput);
+        if (!taskData) return;
+        const dialogData = { ...taskData, tags: normalizeTagIds(taskData?.tags) };
+        const config = buildDialogConfig(DIALOG_TYPES.TASK, true, dialogData);
+        if (viewOnly) {
+            config.readOnly = true;
+        }
+        openDialog({
+            data: dialogData,
+            config,
+            onClose: cardDialogClosed
+        });
+    } catch (error) {
+        logger.error(error.message, error);
+    }
+}
+
+async function resolveTask(taskInput) {
+    if (taskInput && typeof taskInput === "object") return taskInput;
+    if (!taskInput) return null;
+    const cached = kanban.cards.find(card => card.id === taskInput);
+    if (cached) return cached;
+    return await getTaskById(taskInput);
 }
 
 function hideUserDisplay() {
@@ -486,6 +534,7 @@ async function handleCardMoved(args) {
 }
 
 async function cardDialogClosed(args) {
+    if (args.action !== "delete" && args.action !== "save") return true;
     let loaderId;
     let success = true;
     try {
@@ -498,16 +547,20 @@ async function cardDialogClosed(args) {
                 return false;
             }
             if (args.data.id) {
+                const previousCard = kanban.cards.find(c => c.id === args.data.id);
+                const oldParentId = previousCard?.parent_id ?? previousCard?.parent?.id ?? null;
                 const payload = normalizeTaskPayload(args.data);
                 const response = await updateTask(payload);
                 const priority_id = payload.priority_id ?? response?.priority_id ?? args.data.priority_id ?? args.data.priority;
                 const priorityObj = (CURRENT_DATA.priorities || []).find(p => p.id === priority_id) ?? response?.priority ?? args.data.priority;
-                kanban.updateCard({
+                const updatedTask = {
                     ...args.data,
                     ...response,
                     priority_id,
                     priority: priorityObj
-                });
+                };
+                kanban.updateCard(updatedTask);
+                syncParentSubtasks(oldParentId, updatedTask);
             } else {
                 const targetColumnId = args.data.column_id || CURRENT_DATA.columns?.[0]?.id;
                 if (!targetColumnId) {
@@ -517,10 +570,13 @@ async function cardDialogClosed(args) {
                 var response = await addTask(payload, targetColumnId);
                 args.data = { ...response };
                 kanban.addCard(args.data);
+                syncParentSubtasks(null, args.data);
             }
         } else if (args.action === "delete") {
-            await deleteTask(args.data)
+            const parentId = args.data?.parent_id ?? args.data?.parent?.id ?? null;
+            await deleteTask(args.data);
             kanban.deleteCard(args.data);
+            if (parentId) detachSubtask(parentId, args.data.id);
         }
     } catch (error) {
         logger.error(error.message, error);
@@ -706,8 +762,8 @@ async function boardSettingsDialogClosed(args) {
                 const newlyCreatedTags = (args.data?.tags || []).filter(tag => !tag?.id);
                 const restoredTags = [...(CURRENT_DATA.tags || []), ...newlyCreatedTags];
                 args.data.tags = restoredTags;
-                dialog.currentData = { ...dialog.currentData, tags: restoredTags };
-                dialog.renderFields();
+                args.dialog.currentData = { ...args.dialog.currentData, tags: restoredTags };
+                args.dialog.renderFields();
                 return false;
             }
         }
@@ -802,11 +858,47 @@ function normalizeTagIds(tags) {
     return tags.map(tag => tag?.id ?? tag).filter(Boolean);
 }
 
+function syncParentSubtasks(oldParentId, task) {
+    if (!task?.id) return;
+    const newParentId = task?.parent_id ?? task?.parent?.id ?? null;
+    if (oldParentId && oldParentId !== newParentId) {
+        detachSubtask(oldParentId, task.id);
+    }
+    if (newParentId) {
+        upsertSubtask(newParentId, task);
+    }
+}
+
+function detachSubtask(parentId, taskId) {
+    const parent = kanban.cards.find(card => card.id === parentId);
+    if (!parent || !Array.isArray(parent.subtasks)) return;
+    parent.subtasks = parent.subtasks.filter(s => s.id !== taskId);
+}
+
+function upsertSubtask(parentId, task) {
+    const parent = kanban.cards.find(card => card.id === parentId);
+    if (!parent) return;
+    const subtasks = Array.isArray(parent.subtasks) ? parent.subtasks : [];
+    const entry = { id: task.id, title: task.title };
+    const idx = subtasks.findIndex(s => s.id === task.id);
+    parent.subtasks = idx >= 0
+        ? subtasks.map((s, i) => (i === idx ? entry : s))
+        : [...subtasks, entry];
+}
+
 function normalizeTaskPayload(task) {
     const tagIds = normalizeTagIds(task?.tags);
+    // If `parent` key is present (even as null — meaning the user cleared it),
+    // derive parent_id from it. Only fall back to parent_id when parent is absent.
+    const parentId = "parent" in (task ?? {})
+        ? (task.parent?.id ?? null)
+        : (task?.parent_id ?? null);
     return {
         ...task,
-        tags: tagIds
+        parent: undefined,
+        parent_id: parentId,
+        tags: tagIds,
+        subtasks: undefined
     };
 }
 

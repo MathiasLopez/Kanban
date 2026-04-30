@@ -1,0 +1,39 @@
+.link-list {
+  list-style: none;
+  padding: 0 0 0 12px;
+  margin: 0;
+}
+
+.link-list li {
+  margin-bottom: 4px;
+}
+
+.link-list li:last-child {
+  margin-bottom: 0;
+}
+
+.link-list-item {
+  background: transparent;
+  border: 0;
+  padding: 0;
+  margin: 0;
+  font: inherit;
+  color: #1565c0;
+  text-align: left;
+  cursor: pointer;
+  display: inline-block;
+}
+
+.link-list-item:hover {
+  text-decoration: underline;
+}
+
+.link-list-item:focus {
+  outline: none;
+}
+
+.link-list-item:focus-visible {
+  outline: 2px solid #1565c0;
+  outline-offset: 2px;
+  border-radius: 2px;
+}

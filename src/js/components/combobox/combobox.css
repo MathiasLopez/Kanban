@@ -1,0 +1,267 @@
+/* ============================================================
+   Combobox
+   ============================================================ */
+
+.combobox {
+  position: relative;
+  width: 100%;
+}
+
+/* Input wrapper — acts as the visual input box */
+.combobox-input-wrapper {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  padding: 0 8px 0 0;
+  border: 1px solid #d1d5db;
+  border-radius: 4px;
+  background: #fff;
+  min-height: 36px;
+  box-sizing: border-box;
+  transition: border-color 150ms ease, box-shadow 150ms ease;
+  cursor: text;
+}
+
+.combobox-input-wrapper:focus-within {
+  border-color: #6aa9ff;
+  box-shadow: 0 0 0 3px rgba(106, 169, 255, 0.2);
+}
+
+/* Input */
+.combobox-input {
+  flex: 1;
+  min-width: 0;
+  border: none;
+  background: transparent;
+  outline: none;
+  padding: 7px 0 7px 32px;
+  font-size: 14px;
+  line-height: 1.4;
+  color: #111827;
+}
+
+.combobox-input:disabled {
+  color: #9ca3af;
+  cursor: not-allowed;
+}
+
+.combobox-input-wrapper:has(.combobox-input:disabled) {
+  background: #f5f6f7;
+  cursor: not-allowed;
+}
+
+/* Search icon */
+.combobox-search-icon {
+  position: absolute;
+  left: 10px;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 14px;
+  height: 14px;
+  color: #9ca3af;
+  pointer-events: none;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+/* Selected value pill */
+.combobox-pill {
+  display: none;
+  align-items: center;
+  gap: 4px;
+  background: #eff6ff;
+  color: #1d4ed8;
+  border: 1px solid #bfdbfe;
+  border-radius: 4px;
+  padding: 2px 4px 2px 8px;
+  font-size: 13px;
+  max-width: calc(100% - 24px);
+  flex-shrink: 1;
+  min-width: 0;
+  margin-left: 4px;
+  cursor: pointer;
+}
+
+.combobox.has-value .combobox-pill {
+  display: inline-flex;
+}
+
+.combobox-pill-label {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  min-width: 0;
+}
+
+/* Hide input and search icon when pill is shown */
+.combobox.has-value .combobox-input,
+.combobox.has-value .combobox-search-icon {
+  display: none;
+}
+
+/* Edit mode: user clicked the pill label to type a new search.
+   Override has-value rules so the input is visible and the pill (+ its
+   absolutely-positioned clear button) is hidden. */
+.combobox.is-editing .combobox-pill {
+  display: none;
+}
+.combobox.is-editing .combobox-input {
+  display: block;
+}
+.combobox.is-editing .combobox-search-icon {
+  display: flex;
+}
+
+/* Clear button — flex item inside the pill.
+   flex:none + explicit min/max-width/height locks size to exactly 18×18 px
+   so it cannot expand through flex-grow or align-stretch. */
+.combobox-clear {
+  /* Explicit browser button resets (no all:unset which can cause flex issues) */
+  -webkit-appearance: none;
+  appearance: none;
+  margin: 0;
+  padding: 0;
+  border: none;
+  font: inherit;
+
+  /* Hard-lock to 18×18 px inside the flex container */
+  flex: none;
+  width: 18px;
+  min-width: 18px;
+  max-width: 18px;
+  height: 18px;
+  min-height: 18px;
+  max-height: 18px;
+  box-sizing: border-box;
+
+  /* Visual */
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
+  background: transparent;
+  color: #1d4ed8;
+  font-size: 14px;
+  line-height: 1;
+  cursor: default;
+  transition: none;
+  pointer-events: none;
+}
+
+.combobox-clear-icon {
+  width: 18px;
+  height: 18px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  line-height: 1;
+  border-radius: 50%;
+  background: rgba(29, 78, 216, 0.12);
+  transition: background 120ms ease;
+  cursor: pointer;
+  pointer-events: auto;
+}
+
+.combobox-clear-icon:hover {
+  background: rgba(29, 78, 216, 0.24);
+}
+
+/* Loading spinner */
+.combobox-spinner {
+  position: absolute;
+  right: 10px;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 14px;
+  height: 14px;
+  border: 2px solid #e5e7eb;
+  border-top-color: #6aa9ff;
+  border-radius: 50%;
+  animation: combobox-spin 0.65s linear infinite;
+  display: none;
+  flex-shrink: 0;
+}
+
+.combobox.is-loading .combobox-spinner {
+  display: block;
+}
+
+@keyframes combobox-spin {
+  to { transform: translateY(-50%) rotate(360deg); }
+}
+
+/* Dropdown */
+.combobox-dropdown {
+  display: none;
+  position: absolute;
+  top: calc(100% + 4px);
+  left: 0;
+  width: 100%;
+  background: #fff;
+  border: 1px solid #e5e7eb;
+  border-radius: 6px;
+  box-shadow:
+    0 2px 4px rgba(0, 0, 0, 0.04),
+    0 8px 24px rgba(0, 0, 0, 0.10);
+  z-index: 100;
+  max-height: 240px;
+  overflow-y: auto;
+  opacity: 0;
+  transform: translateY(-4px);
+  transition: opacity 150ms ease, transform 150ms ease;
+}
+
+.combobox-dropdown.is-open {
+  display: block;
+  opacity: 1;
+  transform: translateY(0);
+}
+
+/* Empty / hint message */
+.combobox-empty {
+  padding: 10px 12px;
+  font-size: 13px;
+  color: #9ca3af;
+  text-align: center;
+}
+
+/* Options */
+.combobox-item {
+  display: block;
+  width: 100%;
+  padding: 9px 12px;
+  font-size: 14px;
+  color: #111827;
+  cursor: pointer;
+  background: transparent;
+  border: none;
+  text-align: left;
+  transition: background 100ms ease;
+  outline: none;
+  box-sizing: border-box;
+}
+
+.combobox-item:hover {
+  background: #f5f6f7;
+}
+
+/* Keyboard-focused option */
+.combobox-item.is-active {
+  background: #eff6ff;
+  color: #1d4ed8;
+}
+
+/* Error — from Dialog.js (field-error on the label wrapper) */
+.dialog-form-label.field-error .combobox-input-wrapper {
+  border-color: #b71c1c;
+  box-shadow: 0 0 0 3px rgba(183, 28, 28, 0.15);
+}
+
+/* Error — from table.js (field-error on the .combobox root) */
+.combobox.field-error .combobox-input-wrapper {
+  border-color: #b71c1c;
+  box-shadow: 0 0 0 3px rgba(183, 28, 28, 0.15);
+}
