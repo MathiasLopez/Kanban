@@ -1,6 +1,7 @@
 import { Table } from "./components/table/table.js";
 import { Combobox } from "./components/combobox/Combobox.js";
 import { LinkList } from "./components/linklist/LinkList.js";
+import { Attachments } from "./components/attachments/Attachments.js";
 
 export class Dialog {
   constructor({ onClose }) {
@@ -94,9 +95,14 @@ export class Dialog {
 
     // Escape (and other browser-driven dismissals) fire `cancel` before the
     // native close. Route them through our own close() so onClose runs and the
-    // <dialog> element + child component listeners get cleaned up.
+    // <dialog> element + child component listeners get cleaned up. Components
+    // that own a transient native UI (e.g. a file picker) can opt out of this
+    // close by returning true from `shouldBlockDialogCancel()`, since the same
+    // Escape that dismisses their UI also makes the browser dispatch a cancel
+    // on the parent <dialog>.
     this.dialog.addEventListener("cancel", async (e) => {
       e.preventDefault();
+      if (this._components.some(c => c.shouldBlockDialogCancel?.())) return;
       await this.close("cancel");
     }, { signal: sig });
   }
@@ -175,7 +181,7 @@ export class Dialog {
       // table). A <label> wrapping multiple controls causes browsers to forward
       // :hover and click activation to the first control inside, which breaks
       // per-item interactivity.
-      const wrapsSingleControl = field.type !== "linklist" && field.type !== "table";
+      const wrapsSingleControl = field.type !== "linklist" && field.type !== "table" && field.type !== "attachments";
       const wrapper = document.createElement(wrapsSingleControl ? "label" : "div");
       wrapper.classList.add("dialog-form-label");
       const labelRow = document.createElement("span");
@@ -212,6 +218,21 @@ export class Dialog {
           labelField: field.labelField || "title",
           onItemClick: field.onItemClick || null
         });
+        this._components.push(instance);
+        wrapper.appendChild(instance.render());
+        fieldContainer.appendChild(wrapper);
+        return;
+      }
+
+      if (field.type === "attachments") {
+        wrapper.appendChild(labelRow);
+        const instance = new Attachments({
+          items: field.items || [],
+          canEdit: !readOnly && (field.canEdit ?? false),
+          onDownload: field.onDownload || null,
+          onError: field.onError || null
+        });
+        this.fieldGetters.set(field.id, () => instance.getItems());
         this._components.push(instance);
         wrapper.appendChild(instance.render());
         fieldContainer.appendChild(wrapper);
@@ -307,6 +328,12 @@ export class Dialog {
     let hasErrors = false;
     (this.currentConfig.fields || []).forEach(field => {
       if (field.type === "linklist") return;
+
+      if (field.type === "attachments") {
+        const getter = this.fieldGetters.get(field.id);
+        values[field.id] = getter ? getter() : [];
+        return;
+      }
       
       if (field.type === "combobox") {
         const getter = this.fieldGetters.get(field.id);

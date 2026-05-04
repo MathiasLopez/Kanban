@@ -1,0 +1,35 @@
+.attachments {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.attachments-empty {
+  padding-left: 12px;
+  color: #6b7280;
+  font-style: italic;
+}
+
+.attachments-upload {
+  align-self: flex-start;
+  margin-left: 12px;
+  background: #e0e0e0;
+  color: #333;
+  border: 0;
+  border-radius: 4px;
+  padding: 6px 12px;
+  font: inherit;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  letter-spacing: 0.05em;
+}
+
+.attachments-upload:hover {
+  background: #d5d5d5;
+}
+
+.attachments-upload:focus-visible {
+  outline: 2px solid #1565c0;
+  outline-offset: 2px;
+}

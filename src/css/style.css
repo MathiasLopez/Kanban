@@ -2,6 +2,7 @@
 @import "../js/components/confirmation-dialog/confirmation-dialog.css";
 @import "../js/components/combobox/combobox.css";
 @import "../js/components/linklist/linklist.css";
+@import "../js/components/attachments/attachments.css";
 
 /* Layout */
 #top-bar {

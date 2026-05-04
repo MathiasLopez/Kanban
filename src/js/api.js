@@ -2,9 +2,11 @@ import getConfig from "./config.js"
 import { refresh, logout } from "./auth.js";
 
 export async function apiFetch(endpoint, options = {}) {
-	const headers = {
-		"Content-Type": "application/json",
-	};
+	const isFormData = typeof FormData !== "undefined" && options.body instanceof FormData;
+	const headers = { ...(options.headers || {}) };
+	if (!isFormData && !headers["Content-Type"]) {
+		headers["Content-Type"] = "application/json";
+	}
 
 	const makeRequest = () => fetch(`${getConfig().API_URL}${endpoint}`, {
 		...options,
@@ -96,6 +98,26 @@ export function deleteTask(task) {
 
 export function getTaskById(taskId) {
 	return apiFetch(`/tasks/${taskId}`);
+}
+
+// Attachments
+export function uploadTaskAttachment(taskId, file) {
+	const formData = new FormData();
+	formData.append("file", file);
+	return apiFetch(`/tasks/${taskId}/attachments`, {
+		method: "POST",
+		body: formData
+	});
+}
+
+export function getAttachmentDownloadUrl(attachmentId) {
+	return apiFetch(`/attachments/${attachmentId}/download`);
+}
+
+export function deleteAttachment(attachmentId) {
+	return apiFetch(`/attachments/${attachmentId}`, {
+		method: "DELETE"
+	});
 }
 
 export function searchTasks(boardId, query, limit = 20) {

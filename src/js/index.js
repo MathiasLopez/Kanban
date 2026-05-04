@@ -1,4 +1,4 @@
-import { getBoards, addBoard, updateBoard, deleteBoard, getBoardColumnsWithTasks, addTask, updateTask, deleteTask, getBoardMembers, getPrioritis, getTags, getRoles, getUsers, getCurrentUser, getTaskById, searchTasks } from "./api.js";
+import { getBoards, addBoard, updateBoard, deleteBoard, getBoardColumnsWithTasks, addTask, updateTask, deleteTask, getBoardMembers, getPrioritis, getTags, getRoles, getUsers, getCurrentUser, getTaskById, searchTasks, uploadTaskAttachment, getAttachmentDownloadUrl, deleteAttachment } from "./api.js";
 import { redirectToLogin, refresh, logout } from "./auth.js";
 import { Kanban } from "./kanban.js";
 import { Dialog } from "./Dialog.js";
@@ -240,7 +240,18 @@ function buildDialogConfig(type, isEdit, data = null) {
                 items: data.subtasks,
                 labelField: "title",
                 onItemClick: (item) => openTaskDialog(item.id, true)
-            }] : [])
+            }] : []),
+            {
+                id: "attachments",
+                label: "Attachments",
+                type: "attachments",
+                items: data?.attachments || [],
+                canEdit: isEdit ? canUpdateTask : canCreateTask,
+                onDownload: async (item) => {
+                    const { url } = await getAttachmentDownloadUrl(item.id);
+                    window.open(url, "_blank");
+                }
+            }
         ]
     };
 }
@@ -551,13 +562,40 @@ async function cardDialogClosed(args) {
                 const oldParentId = previousCard?.parent_id ?? previousCard?.parent?.id ?? null;
                 const payload = normalizeTaskPayload(args.data);
                 const response = await updateTask(payload);
+                const currentAttachments = Array.isArray(args.data.attachments) ? args.data.attachments : [];
+                const originalAttachments = Array.isArray(previousCard?.attachments) ? previousCard.attachments : [];
+                const uploads = currentAttachments.filter(a => a.id == null && a.file).map(a => a.file);
+                const currentIds = new Set(currentAttachments.filter(a => a.id != null).map(a => String(a.id)));
+                const deletionIds = originalAttachments.filter(a => !currentIds.has(String(a.id))).map(a => a.id);
+                // TODO: surface upload/delete failures to the user (currently only logged).
+                const newAttachments = [];
+                for (const file of uploads) {
+                    try {
+                        const created = await uploadTaskAttachment(args.data.id, file);
+                        if (created) newAttachments.push(created);
+                    } catch (error) {
+                        logger.error(error.message, error);
+                    }
+                }
+                for (const attachmentId of deletionIds) {
+                    try {
+                        await deleteAttachment(attachmentId);
+                    } catch (error) {
+                        logger.error(error.message, error);
+                    }
+                }
+                const finalAttachments = [
+                    ...originalAttachments.filter(a => currentIds.has(String(a.id))),
+                    ...newAttachments
+                ];
                 const priority_id = payload.priority_id ?? response?.priority_id ?? args.data.priority_id ?? args.data.priority;
                 const priorityObj = (CURRENT_DATA.priorities || []).find(p => p.id === priority_id) ?? response?.priority ?? args.data.priority;
                 const updatedTask = {
                     ...args.data,
                     ...response,
                     priority_id,
-                    priority: priorityObj
+                    priority: priorityObj,
+                    attachments: finalAttachments
                 };
                 kanban.updateCard(updatedTask);
                 syncParentSubtasks(oldParentId, updatedTask);
@@ -567,8 +605,21 @@ async function cardDialogClosed(args) {
                     throw new Error("No columns available to assign the new task.");
                 }
                 const payload = normalizeTaskPayload({ ...args.data, column_id: targetColumnId });
-                var response = await addTask(payload, targetColumnId);
-                args.data = { ...response };
+                const response = await addTask(payload, targetColumnId);
+                const pendingAttachments = Array.isArray(args.data.attachments)
+                    ? args.data.attachments.filter(a => a.id == null && a.file).map(a => a.file)
+                    : [];
+                // TODO: surface upload failures to the user (currently only logged).
+                const createdAttachments = [];
+                for (const file of pendingAttachments) {
+                    try {
+                        const created = await uploadTaskAttachment(response.id, file);
+                        if (created) createdAttachments.push(created);
+                    } catch (error) {
+                        logger.error(error.message, error);
+                    }
+                }
+                args.data = { ...response, attachments: createdAttachments };
                 kanban.addCard(args.data);
                 syncParentSubtasks(null, args.data);
             }
@@ -898,7 +949,8 @@ function normalizeTaskPayload(task) {
         parent: undefined,
         parent_id: parentId,
         tags: tagIds,
-        subtasks: undefined
+        subtasks: undefined,
+        attachments: undefined
     };
 }
 

@@ -4,11 +4,16 @@
   margin: 0;
 }
 
-.link-list li {
+.link-list-li {
+  display: flex;
+  align-items: center;
+  gap: 8px;
   margin-bottom: 4px;
+  width: fit-content;
+  max-width: 100%;
 }
 
-.link-list li:last-child {
+.link-list-li:last-child {
   margin-bottom: 0;
 }
 
@@ -21,7 +26,11 @@
   color: #1565c0;
   text-align: left;
   cursor: pointer;
-  display: inline-block;
+  flex: 0 1 auto;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .link-list-item:hover {
@@ -34,6 +43,39 @@
 
 .link-list-item:focus-visible {
   outline: 2px solid #1565c0;
+  outline-offset: 2px;
+  border-radius: 2px;
+}
+
+.link-list-li.is-disabled .link-list-item {
+  color: #6b7280;
+  font-style: italic;
+  cursor: default;
+}
+
+.link-list-li.is-disabled .link-list-item:hover {
+  text-decoration: none;
+}
+
+.link-list-item-delete {
+  background: transparent;
+  border: 0;
+  padding: 0 4px;
+  margin: 0;
+  font: inherit;
+  font-size: 18px;
+  line-height: 1;
+  color: #b71c1c;
+  cursor: pointer;
+  flex: 0 0 auto;
+}
+
+.link-list-item-delete:hover {
+  color: #7f1010;
+}
+
+.link-list-item-delete:focus-visible {
+  outline: 2px solid #b71c1c;
   outline-offset: 2px;
   border-radius: 2px;
 }
